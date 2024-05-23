@@ -2,6 +2,8 @@
 
 Authentication in the GitHub Action is performed via Workload Identity Federation, to avoid handling long-lived service account files.
 
+Using this GitHub Action: https://github.com/google-github-actions/auth
+
 Initial setup was performed as follows:
 
 1. I created a [Workload Identity Pool](https://cloud.google.com/iam/docs/manage-workload-identity-pools-providers) called `app-engine-publishers` in the `probcomp-caliban` GCP project.
