@@ -27,9 +27,3 @@ To use in another repo, create an additional IAM entry, modifying the principal 
 
 Currently unable to deploy to app engine, probably due to this issue:
 https://github.com/firebase/firebase-admin-node/issues/1377
-
-gcloud iam service-accounts add-iam-policy-binding "github-appengine-deploy@probcomp-caliban.iam.gserviceaccount.com" \
-  --project="probcomp-caliban" \
-  --role="roles/iam.workloadIdentityUser" \
-  --member="principalSet://iam.googleapis.com/projects/110275315150/locations/global/workloadIdentityPools/app-engine-publishers/attribute.repository/probcomp/gae-website-test"
-  
