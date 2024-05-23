@@ -21,7 +21,7 @@ jobs:
       uses: 'google-github-actions/auth@v2.1.3'
       with:
         project_id: 'probcomp-caliban'
-        workload_identity_provider: 'projects/110275315150/locations/global/workloadIdentityPools/app-engine-publishers/providers/github'
+        workload_identity_provider: 'https://iam.googleapis.com/projects/110275315150/locations/global/workloadIdentityPools/app-engine-publishers/providers/github'
         service_account: 'github-appengine-deploy@probcomp-caliban.iam.gserviceaccount.com'
     - id: 'gcloud_check'
       run: |-
