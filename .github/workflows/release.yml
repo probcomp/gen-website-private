@@ -1,0 +1,25 @@
+name: Publish to app engine 
+
+on:
+  workflow_dispatch:
+
+jobs:
+  Deploy:
+    # Add "id-token" with the intended permissions.
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - uses: 'actions/checkout@v4'
+
+    - uses: 'google-github-actions/auth@v2'
+      with:
+        project_id: 'probcomp-caliban'
+        workload_identity_provider: 'projects/110275315150/locations/global/workloadIdentityPools/app-engine-publishers/providers/github'
+        service_provider: 'app-engine-publisher@probcomp-caliban.iam.gserviceaccount.com'
+    - id: 'gcloud'
+      name: 'gcloud'
+      run: |-
+        gcloud auth login --brief --cred-file="${{steps.auth.outputs.credentials_file_path}}"
+        gcloud services list
