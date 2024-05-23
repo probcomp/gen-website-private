@@ -5,6 +5,7 @@ on:
 
 jobs:
   Deploy:
+    runs-on: ubuntu-latest
     # Add "id-token" with the intended permissions.
     permissions:
       contents: 'read'
@@ -17,7 +18,7 @@ jobs:
       with:
         project_id: 'probcomp-caliban'
         workload_identity_provider: 'projects/110275315150/locations/global/workloadIdentityPools/app-engine-publishers/providers/github'
-        service_provider: 'app-engine-publisher@probcomp-caliban.iam.gserviceaccount.com'
+        service_account: 'app-engine-publisher@probcomp-caliban.iam.gserviceaccount.com'
     - id: 'gcloud'
       name: 'gcloud'
       run: |-
