@@ -22,3 +22,7 @@ Initial setup was performed as follows:
 To use in another repo, create an additional IAM entry, modifying the principal above with your desired repository name.
 
 
+## Blocked
+
+Currently unable to deploy to app engine, probably due to this issue:
+https://github.com/firebase/firebase-admin-node/issues/1377

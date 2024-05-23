@@ -6,8 +6,10 @@ handlers:
     upload: favicon\.ico
 
   - url: /
-    static_dir: public
-
+    static_files: public/index.html
+    upload: public/index.html
+  - url: /.*
+    static_dir: public  
   - url: /.*
     secure: always
     redirect_http_response_code: 301

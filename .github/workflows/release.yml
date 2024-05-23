@@ -18,7 +18,7 @@ jobs:
     - uses: 'actions/checkout@v4'
 
     - id: 'auth'
-      uses: 'google-github-actions/auth@v2'
+      uses: 'google-github-actions/auth@v2.1.3'
       with:
         project_id: 'probcomp-caliban'
         workload_identity_provider: 'projects/110275315150/locations/global/workloadIdentityPools/app-engine-publishers/providers/github'
