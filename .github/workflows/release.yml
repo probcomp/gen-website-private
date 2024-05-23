@@ -27,7 +27,7 @@ jobs:
     - id: 'gcloud_check'
       run: |-
         # gcloud auth login --brief --cred-file="${{steps.auth.outputs.credentials_file_path}}"
-        gcloud services list
+        # gcloud services list
         gcloud app describe
         gcloud app deploy --quiet 
            
