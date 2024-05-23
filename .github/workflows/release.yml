@@ -22,7 +22,7 @@ jobs:
       with:
         project_id: 'probcomp-caliban'
         workload_identity_provider: 'projects/110275315150/locations/global/workloadIdentityPools/app-engine-publishers/providers/github'
-    - id: 'gcloud check'
+    - id: 'gcloud_check'
       run: |-
         gcloud auth login --brief --cred-file="${{steps.auth.outputs.credentials_file_path}}"
         gcloud services list
