@@ -1,15 +1,12 @@
 # Gen Website (Private)
 
-This repository contains code and workflows that enable probcomp repositories to publish private websites from GitHub Actions.
+This repo contains code and workflows that enable probcomp repositories to publish private websites from GitHub Actions.
 
 ### I manage a probcomp repo. How do I use this?
 
-Copy the `publish_website.yml` action into your repo under `.github/workflows`, or copy its contents into an existing action.
-Customize the `WEBSITE_DIR` to be the directory you want to publish. Decide how and when you want your website to be published
-(see the `on` block in `publish_website.yml` for ideas). You will probably want to add some kind of build step before the 
-deploy job.
+Copy the `publish_website.yml` action into your repo under `.github/workflows`, or copy its contents into an existing action. Customize the `WEBSITE_DIR` to be the directory you want to publish. Decide how and when you want your website to be published (see the `on` block in `publish_website.yml` for ideas). You will probably want to add some kind of build step before the deploy job.
 
-Your repo will be served from its own subdomain: `<REPO>.preview.gen.dev`. (TODO!)
+Your repo will be served from its own subdomain: `<REPO>.gen.dev`. Magic!
 
 ### Who can access these websites?
 
@@ -18,15 +15,11 @@ Members of `all@chi-fro.org` and `genjax-users@chi-fro.org` have access.
 Access is controlled via [Identity-Aware Proxy](https://console.cloud.google.com/security/iap?referrer=search&project=probcomp-caliban)
 by adding the `IAP-secured Web App User` role to a "principal". The easiest way to do this in aggregate is by using Google Groups.
 
-### Implementation / Security Notes 
+### Authentication Notes
 
-These actions use Workload Identity Federation to avoid having to handle secrets (like service account keys/files). Instead of configuring 
-secrets in the GitHub environment, access is managed directly in Google Cloud.
-
-Within GitHub Actions, the auth flow is handled by https://github.com/google-github-actions/auth.
-
-In the Google Cloud console, I followed the instructions for [Workload Identity Federation through a Service Account](https://github.com/google-github-actions/auth?tab=readme-ov-file#workload-identity-federation-through-a-service-account), after first 
-implementing the recommended "Direct Workload Identity Federation" and finding it broken due to a [2-year-old bug](https://github.com/firebase/firebase-admin-node/issues/1377).
+Instead of using secret Service Account variables, access to Google Cloud services is managed via 
+[Workload Identity Federation through a Service Account](https://github.com/google-github-actions/auth?tab=readme-ov-file#workload-identity-federation-through-a-service-account)
+using the [google-github](https://github.com/google-github-actions/auth) action.
 
 We will now find in our GCP account:
 
@@ -52,5 +45,11 @@ within GitHub Actions.
 
 Note: using this identity pool, a GitHub action in any probcomp website can modify the `gen-website-private` bucket without restriction.
 
+### SSL 
+
 [These instructions](https://gist.github.com/patmigliaccio/d559035e1aa7808705f689b20d7b3fd3) were essential to enabling SSL for a wildcard 
-subdomain on App Engine.
+subdomain on App Engine.  I created an origin certificate in Cloudflare, appended the [Cloudflare Origin CA root certificate (ECC PEM)](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca#cloudflare-origin-ca-root-certificate) to the PEM file, and converted the private key to RSA using the following command (note the `-traditional` flag):
+```sh
+openssl rsa -in domain.com-YYYY-MM-dd.key -out domain.com-RSA-YYYY-MM-dd.key -traditional
+```
+The certificate was free and expires in 15 years; it's only useful for use between Cloudflare and App Engine. (If we would switch DNS providers we would need another wildcard subdomain SSL solution.)

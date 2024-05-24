@@ -32,4 +32,4 @@ jobs:
 
     - name: Deploy to Google Cloud Storage
       run: | 
-        gcloud storage rsync --recursive  --cache-control 'public, max-age=60' $WEBSITE_DIR gs://gen-website-private/${{github.repository}}
+        gcloud storage rsync --recursive --delete-unmatched-destination-objects  --cache-control 'public, max-age=60' $WEBSITE_DIR gs://gen-website-private/${{github.repository}}
