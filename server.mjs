@@ -112,7 +112,7 @@ app.get('/*', async (req, res) => {
     if (match) {
         const repo = match[1];
         const filePath = req.params[0];
-        await handleFileRequest(repo, filePath, req, res);
+        await handleFileRequest(repo, filePath, res);
     } else {
         res.status(404).send('Not Found');
     }

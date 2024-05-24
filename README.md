@@ -51,3 +51,6 @@ There is also a second identity pool, `gen-website-private-publishers`, which gr
 within GitHub Actions.
 
 Note: using this identity pool, a GitHub action in any probcomp website can modify the `gen-website-private` bucket without restriction.
+
+[These instructions](https://gist.github.com/patmigliaccio/d559035e1aa7808705f689b20d7b3fd3) were essential to enabling SSL for a wildcard 
+subdomain on App Engine.

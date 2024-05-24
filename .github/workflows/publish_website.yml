@@ -33,8 +33,3 @@ jobs:
     - name: Deploy to Google Cloud Storage
       run: | 
         gcloud storage rsync --recursive  --cache-control 'public, max-age=60' $WEBSITE_DIR gs://gen-website-private/${{github.repository}}
-        
-    - name: Ensure Domain Mapping
-      run: |
-        REPOSITORY_NAME=$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)
-        ./scripts/ensure_domain_mapping.sh ${REPOSITORY_NAME}.gen.dev
