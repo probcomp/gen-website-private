@@ -80,7 +80,7 @@ const handleFileRequest = async (repo, filePath, res) => {
     // Construct the full path in the bucket
     const bucketPath = path.join(BUCKET_PREFIX, repo, filePath);
 
-    console.log('bucketPath', bucketPath)
+    console.log('handleFileRequest', {repo, filePath, bucketPath})
 
     try {
         // Serve HTML files directly, otherwise redirect to a signed URL
