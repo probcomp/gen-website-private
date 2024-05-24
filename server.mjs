@@ -75,12 +75,9 @@ const handleFileRequest = async (repo, filePath, res) => {
         // If there is no extension, serve the main repo index.html
         filePath = 'index.html';
     }
-    console.log('modified filePath', filePath)
 
     // Construct the full path in the bucket
     const bucketPath = path.join(BUCKET_PREFIX, repo, filePath);
-
-    console.log('handleFileRequest', {repo, filePath, bucketPath})
 
     try {
         // Serve HTML files directly, otherwise redirect to a signed URL
@@ -101,22 +98,22 @@ const handleFileRequest = async (repo, filePath, res) => {
     }
 };
 
-app.get('/:repo/*', async (req, res) => {
-    await handleFileRequest(req.params.repo, req.params[0], res);
-});
-
-app.get('/:repo', async (req, res) => {
-    await handleFileRequest(req.params.repo, '', res);
-});
+if (process.env.ENV == 'dev') {
+    app.get('/:repo/*', async (req, res) => {
+        await handleFileRequest(req.params.repo, req.params[0], res);
+    });
+    
+    app.get('/:repo', async (req, res) => {
+        await handleFileRequest(req.params.repo, '', res);
+    });
+}
 
 app.get('/*', async (req, res) => {
     const host = req.hostname;
-    console.log('host', host)
     const match = host.match(HOST_REPO_REGEX);
     if (match) {
         const repo = match[1];
         const filePath = req.params[0];
-        console.log('repo', repo, 'filePath', filePath)
         await handleFileRequest(repo, filePath, res);
     } else {
         res.status(404).send('Not Found');
