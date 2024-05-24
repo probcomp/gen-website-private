@@ -43,7 +43,11 @@ We will now find in our GCP account:
 There is also a second identity pool, `gen-website-private-publishers`, which grants all probcomp repositories access to the private bucket 
 within GitHub Actions.
 
-Note: using this identity pool, a GitHub action in any probcomp website can modify the `gen-website-private` bucket without restriction.
+- Using this identity pool, a GitHub action in any probcomp website can modify the `gen-website-private` bucket without restriction.
+- To enable App Engine to create signed blobs (time-limited links to files in the private bucket), I added the required permission via the following command (using the console UI didn't work):
+  ```
+  gcloud projects add-iam-policy-binding probcomp-caliban --member=serviceAccount:probcomp-caliban@appspot.gserviceaccount.com --role='roles/iam.serviceAccountTokenCreator'
+  ```
 
 ### SSL 
 
