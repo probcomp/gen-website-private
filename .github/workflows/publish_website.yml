@@ -1,7 +1,10 @@
-name: Publish static files to a cloud bucket
+name: Publish a website directory to a private Gen website.
 
 on:
+  # allow this workflow to be triggered manually from the GitHub UI
   workflow_dispatch:
+
+  # trigger this workflow on every push to `main`
   push:
     branches:
       - main
@@ -13,6 +16,9 @@ jobs:
       contents: 'read'
       id-token: 'write'
 
+    env:
+      WEBSITE_DIR: './public'
+
     steps:
     - uses: 'actions/checkout@v4'
 
@@ -23,10 +29,6 @@ jobs:
         workload_identity_provider: 'projects/110275315150/locations/global/workloadIdentityPools/gen-website-private-publishers/providers/github'
         service_account: 'gen-website-private-admin@probcomp-caliban.iam.gserviceaccount.com'
         audience: '//iam.googleapis.com/projects/110275315150/locations/global/workloadIdentityPools/gen-website-private-publishers/providers/github'
-    - name: Create info.json
-      run: |
-        echo '{ "createdAt": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'" }' > ./public/info.json    
     - id: 'deploy'
       run: | 
-        gcloud storage rsync --recursive  --cache-control 'public, max-age=60' ./public gs://gen-website-private/${{github.repository}}
-           
+        gcloud storage rsync --recursive  --cache-control 'public, max-age=60' $WEBSITE_DIR gs://gen-website-private/${{github.repository}}

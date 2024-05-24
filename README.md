@@ -1,10 +1,31 @@
-# Static site with password auth via GAE
+# Gen Website (Private)
 
-See `.github/workflows/release.yml`.
+This repository contains code and workflows that enable probcomp repositories to publish private websites from GitHub Actions.
 
-Authentication in the GitHub Action is performed via Workload Identity Federation, to avoid handling long-lived service account files, using this GitHub Action: https://github.com/google-github-actions/auth
+### I manage a probcomp repo. How do I use this?
 
-I followed the instructions for [Workload Identity Federation through a Service Account](https://github.com/google-github-actions/auth?tab=readme-ov-file#workload-identity-federation-through-a-service-account), after first 
+Copy the `publish_website.yml` action into your repo under `.github/workflows`, or copy its contents into an existing action.
+Customize the `WEBSITE_DIR` to be the directory you want to publish. Decide how and when you want your website to be published
+(see the `on` block in `publish_website.yml` for ideas). You will probably want to add some kind of build step before the 
+deploy job.
+
+Your repo will be served from its own subdomain: `<REPO>.preview.gen.dev`. (TODO!)
+
+### Who can access these websites?
+
+Members of `all@chi-fro.org` and `genjax-users@chi-fro.org` have access. 
+
+Access is controlled via [Identity-Aware Proxy](https://console.cloud.google.com/security/iap?referrer=search&project=probcomp-caliban)
+by adding the `IAP-secured Web App User` role to a "principal". The easiest way to do this in aggregate is by using Google Groups.
+
+### Implementation / Security Notes 
+
+These actions use Workload Identity Federation to avoid having to handle secrets (like service account keys/files). Instead of configuring 
+secrets in the GitHub environment, access is managed directly in Google Cloud.
+
+Within GitHub Actions, the auth flow is handled by https://github.com/google-github-actions/auth.
+
+In the Google Cloud console, I followed the instructions for [Workload Identity Federation through a Service Account](https://github.com/google-github-actions/auth?tab=readme-ov-file#workload-identity-federation-through-a-service-account), after first 
 implementing the recommended "Direct Workload Identity Federation" and finding it broken due to a [2-year-old bug](https://github.com/firebase/firebase-admin-node/issues/1377).
 
 We will now find in our GCP account:
@@ -23,7 +44,10 @@ We will now find in our GCP account:
     - App Engine Service Admin
     - Cloud Build Service Account
     - Workload Identity User
+4. When the service account is added to the identity pool, it also has an attribute mapping specified to restrict usage.
+    - `attribute.repository` - `probcomp/gen-website-private`
 
-To run this in a different repository, you'll need to edit the identity pool's [github provider](https://console.cloud.google.com/iam-admin/workload-identity-pools/pool/app-engine-publishers/provider/github?project=probcomp-caliban), specifically the "Attribute Conditions".
+There is also a second identity pool, `gen-website-private-publishers`, which grants all probcomp repositories access to the private bucket 
+within GitHub Actions.
 
-I also created an identity for publishing to the `gen-website-private` bucket called `gen-website-private-publishers`.
+Note: using this identity pool, a GitHub action in any probcomp website can modify the `gen-website-private` bucket without restriction.
