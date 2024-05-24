@@ -1,15 +1,8 @@
-runtime: python39
+runtime: nodejs22
+env_variables:
+  BUCKET_NAME: "gen-website-private"
 
 handlers:
-  - url: /favicon\.ico
-    static_files: favicon.ico
-    upload: favicon\.ico
-
-  - url: /
-    static_files: public/index.html
-    upload: public/index.html
-  - url: /.*
-    static_dir: public  
   - url: /.*
     secure: always
     redirect_http_response_code: 301

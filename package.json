@@ -1,0 +1,21 @@
+{
+  "name": "gen-website-private",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:probcomp/gae-website-test.git",
+  "author": "Matthew Huebert <mhuebert@gmail.com>",
+  "dependencies": {
+    "@google-cloud/storage": "^7.11.1",
+    "express": "^4.19.2",
+    "node-cache": "^5.1.2",
+    "stream-mime-type": "^2.0.0"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "GOOGLE_APPLICATION_CREDENTIALS=key.json BUCKET_NAME=gen-website-private PORT=3000 nodemon server.mjs",
+    "dev-rsync": "gcloud storage rsync --recursive --cache-control 'public, max-age=60' ./public gs://gen-website-private/probcomp/test-repo"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

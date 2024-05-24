@@ -28,5 +28,5 @@ jobs:
         echo '{ "createdAt": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'" }' > ./public/info.json    
     - id: 'deploy'
       run: | 
-        gcloud storage rsync --recursive ./public gs://gen-website-private/${{github.repository}}
+        gcloud storage rsync --recursive  --cache-control 'public, max-age=60' ./public gs://gen-website-private/${{github.repository}}
            
