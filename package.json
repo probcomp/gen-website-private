@@ -7,7 +7,7 @@
   "dependencies": {
     "@google-cloud/storage": "^7.11.1",
     "express": "^4.19.2",
-    "node-cache": "^5.1.2",
+    "memoizee": "^0.4.17",
     "stream-mime-type": "^2.0.0"
   },
   "scripts": {
