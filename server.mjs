@@ -108,6 +108,9 @@ app.get('/:repo', async (req, res) => {
 
 app.get('/*', async (req, res) => {
     const host = req.hostname;
+    console.log('host', host)
+    console.log('match', host.match(HOST_REPO_REGEX))
+    console.log(req)
     const match = host.match(HOST_REPO_REGEX);
     if (match) {
         const repo = match[1];
