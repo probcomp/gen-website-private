@@ -25,3 +25,5 @@ We will now find in our GCP account:
     - Workload Identity User
 
 To run this in a different repository, you'll need to edit the identity pool's [github provider](https://console.cloud.google.com/iam-admin/workload-identity-pools/pool/app-engine-publishers/provider/github?project=probcomp-caliban), specifically the "Attribute Conditions".
+
+I also created an identity for publishing to the `gen-website-private` bucket called `gen-website-private-publishers`.
