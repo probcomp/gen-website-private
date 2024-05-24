@@ -2,7 +2,7 @@
   "name": "gen-website-private",
   "version": "1.0.0",
   "main": "index.js",
-  "repository": "git@github.com:probcomp/gae-website-test.git",
+  "repository": "git@github.com:probcomp/gen-website-private.git",
   "author": "Matthew Huebert <mhuebert@gmail.com>",
   "dependencies": {
     "@google-cloud/storage": "^7.11.1",

@@ -17,7 +17,7 @@ We will now find in our GCP account:
         - `attribute.repository` - `assertion.repository`
         - `attribute.repository_owner` - `assertion.repository_owner`
     - Attribute Conditions:
-        `assertion.repository_owner == 'probcomp' && assertion.repository == 'probcomp/gae-website-test'`    
+        `assertion.repository_owner == 'probcomp' && assertion.repository == 'probcomp/gen-website-private'`    
 3. A `github-appengine-deploy` service account, with the roles:
     - App Engine Deployer
     - App Engine Service Admin
