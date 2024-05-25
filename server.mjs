@@ -22,13 +22,14 @@ const app = express();
 const storage = new Storage();
 const bucket = storage.bucket(BUCKET_NAME);
 
-const generateSignedUrl = memoizee(async (file) => {
+const generateSignedUrl = memoizee(async (bucketPath) => {
+    console.log('generate signed url for ', bucketPath)
     const options = {
         version: 'v4',
         action: 'read',
         expires: Date.now() + 60 * 60 * 1000, // Signed URL is valid for 60 minutes
     };
-    const [url] = await file.getSignedUrl(options);
+    const [url] = await bucket.file(bucketPath).getSignedUrl(options);
     return url;
 }, { maxAge: 50 * 60 * 1000 }); // Cache for 50 minutes
 
@@ -59,7 +60,7 @@ const pipeFile = async (res, path) => {
 };
 
 const redirectFile = async (res, path) => {
-    const signedUrl = await generateSignedUrl(bucket.file(path));
+    const signedUrl = await generateSignedUrl(path);
     res.setHeader('Expires', new Date(Date.now() + 60 * 1000).toUTCString());
     return res.redirect(301, signedUrl);
 };
