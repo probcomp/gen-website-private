@@ -62,6 +62,7 @@ const pipeFile = async (res, path) => {
 const redirectFile = async (res, path) => {
     const signedUrl = await generateSignedUrl(path);
     res.setHeader('Expires', new Date(Date.now() + 60 * 1000).toUTCString());
+    res.setHeader('Cache-Control', `public, max-age=${HTML_MAX_AGE}`);
     return res.redirect(301, signedUrl);
 };
 
