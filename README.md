@@ -54,7 +54,7 @@ within GitHub Actions.
 To publish to `www.gen.dev`, set `SUBDOMAIN` to `www`. To publish to a `PARENT_DOMAIN` other than `gen.dev`, an additional custom domain must be added via App Engine in Google Cloud.
 
 [These instructions](https://gist.github.com/patmigliaccio/d559035e1aa7808705f689b20d7b3fd3) were essential to enabling SSL for a wildcard 
-subdomain on App Engine.  I created an origin certificate in Cloudflare, appended the [Cloudflare Origin CA root certificate (ECC PEM)](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca#cloudflare-origin-ca-root-certificate) to the PEM file, and converted the private key to RSA using the following command (note the `-traditional` flag):
+subdomain on App Engine.  I created an origin certificate in Cloudflare, appended the [Cloudflare Origin CA root certificate (ECC PEM)](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca#cloudflare-origin-ca-root-certificate) to the PEM file, and converted the private key to RSA using the following command ([note](https://gist.github.com/patmigliaccio/d559035e1aa7808705f689b20d7b3fd3?permalink_comment_id=4421351#gistcomment-4421351) the `-traditional` flag):
 ```sh
 openssl rsa -in domain.com-YYYY-MM-dd.key -out domain.com-RSA-YYYY-MM-dd.key -traditional
 ```

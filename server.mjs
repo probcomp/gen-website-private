@@ -67,7 +67,7 @@ const redirectFile = async (res, path) => {
 const handleFileRequest = async (parentDomain, subDomain, filePath, res) => {
     // Handles file requests by determining the appropriate file path and serving the file.
     
-    if (filePath.endswith('/')) {
+    if (filePath.endsWith('/')) {
         // If the path ends with '/', serve the directory index.html
         filePath = path.join(filePath, 'index.html');
     } else if (!getExtension(filePath)) {
