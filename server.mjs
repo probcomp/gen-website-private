@@ -42,7 +42,7 @@ const getExtension = (path) => {
 const serveHtml = async (res, path) => {
     const htmlFile = bucket.file(path);
     res.setHeader('Content-Type', 'text/html');
-    res.setHeader('Cache-Control', `public, max-age=${HTML_MAX_AGE}`);
+    res.setHeader('Cache-Control', `private, max-age=${HTML_MAX_AGE}`);
     return new Promise((resolve, reject) => {
         htmlFile.createReadStream()
             .on('error', reject)
@@ -54,7 +54,7 @@ const serveHtml = async (res, path) => {
 const pipeFile = async (res, path) => {
     const { mime, stream } = await getMimeType(bucket.file(path).createReadStream(), { filename: path });
     res.setHeader('Content-Type', mime);
-    res.setHeader('Cache-Control', `public, max-age=${HTML_MAX_AGE}`);
+    res.setHeader('Cache-Control', `private, max-age=${HTML_MAX_AGE}`);
     return stream.pipe(res);
 };
 
@@ -65,11 +65,11 @@ const redirectFile = async (res, path) => {
     // in practice, IAP (Identity Aware Proxy) is adding cache-busting headers to 
     // this redirect because it is behind an auth wall. I haven't figured out a way 
     // to circumvent them for these static assets.
-    
+
     const [signedUrl, expires] = await generateSignedUrl(path);
     const maxAge = (expires - Date.now()) / 1000; // Calculate max-age in seconds
     res.setHeader('Expires', new Date(expires).toUTCString());
-    res.setHeader('Cache-Control', `public, max-age=${maxAge}`);
+    res.setHeader('Cache-Control', `private, max-age=${maxAge}`);
     return res.redirect(302, signedUrl); 
 };
 
