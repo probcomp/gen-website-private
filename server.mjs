@@ -59,9 +59,13 @@ const pipeFile = async (res, path) => {
 };
 
 const redirectFile = async (res, path) => {
+    // Redirects static asset requests to signed bucket URLs instead of piping them through 
+    // this server. Signed URLs are valid for one hour, and memoized. 
+
     // in practice, IAP (Identity Aware Proxy) is adding cache-busting headers to 
     // this redirect because it is behind an auth wall. I haven't figured out a way 
     // to circumvent them for these static assets.
+    
     const [signedUrl, expires] = await generateSignedUrl(path);
     const maxAge = (expires - Date.now()) / 1000; // Calculate max-age in seconds
     res.setHeader('Expires', new Date(expires).toUTCString());
