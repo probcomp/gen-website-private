@@ -13,7 +13,7 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "GOOGLE_APPLICATION_CREDENTIALS=key.json BUCKET_NAME=gen-website-private ENV=dev PORT=3000 nodemon server.mjs",
-    "dev-rsync": "gcloud storage rsync --recursive --cache-control 'public, max-age=60' ./public gs://gen-website-private/gen.dev/test-repo",
+    "dev-rsync": "gcloud storage rsync --recursive --cache-control 'public, max-age=60' ./public/gen.dev/local-test gs://gen-website-private/gen.dev/local-test",
     "tail": "gcloud app logs tail"
   },
   "devDependencies": {

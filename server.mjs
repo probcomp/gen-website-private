@@ -1,12 +1,12 @@
 // An Express server that serves static files from a Google Cloud Storage bucket.
 
-// - HTML files are piped directly through the server using a readable stream.
-// - Other files are redirected to a signed bucket URL for direct access.
+// - HTML files are piped from the bucket.
+// - Other static files are redirected to a signed bucket URL.
 // - Paths without an extension are served `index.html` to support Single Page Applications (SPAs).
 // - Paths ending with a slash are served the `index.html` of the directory.
 
-// URLs are expected to be in the form `subdomain.gen.dev/foo` for production or,
-// for development/testing, `localhost:3000/subdomain/foo`.
+// In prod, we map `subdomain.parent.com` to `parent.com/subdomain` in the bucket.
+// In development, we map `localhost:3000/parent.com/subdomain` to `parent.com/subdomain` in the bucket.
 
 import { Storage } from '@google-cloud/storage';
 import express from 'express';
@@ -62,9 +62,9 @@ const redirectFile = async (res, path) => {
     // Redirects static asset requests to signed bucket URLs instead of piping them through 
     // this server. Signed URLs are valid for one hour, and memoized. 
 
-    // in practice, IAP (Identity Aware Proxy) is adding cache-busting headers to 
-    // this redirect because it is behind an auth wall. I haven't figured out a way 
-    // to circumvent them for these static assets.
+    // Note: IAP (Identity Aware Proxy) adds cache-busting headers to all requests to prevent 
+    // caching of private content. These headers *should* only control the redirect itself, 
+    // but they cause Safari to refuse to cache the destination as well. 
 
     const [signedUrl, expires] = await generateSignedUrl(path);
     const maxAge = (expires - Date.now()) / 1000; // Calculate max-age in seconds
@@ -106,12 +106,12 @@ const handleFileRequest = async (parentDomain, subDomain, filePath, res) => {
 };
 
 if (process.env.ENV == 'dev') {
-    app.get('/:subDomain/*', async (req, res) => {
-        await handleFileRequest('gen.dev', req.params.subDomain, req.params[0], res);
+    app.get('/:parentDomain/:subDomain/*', async (req, res) => {
+        await handleFileRequest(req.params.parentDomain, req.params.subDomain, req.params[0], res);
     });
     
-    app.get('/:subDomain', async (req, res) => {
-        await handleFileRequest('gen.dev', req.params.subDomain, '', res);
+    app.get('/:parentDomain/:subDomain', async (req, res) => {
+        await handleFileRequest(req.params.parentDomain, req.params.subDomain, '', res);
     });
 }
 
