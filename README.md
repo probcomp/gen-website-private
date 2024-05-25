@@ -44,12 +44,14 @@ There is also a second identity pool, `gen-website-private-publishers`, which gr
 within GitHub Actions.
 
 - Using this identity pool, a GitHub action in any probcomp website can modify the `gen-website-private` bucket without restriction.
-- To enable App Engine to create signed blobs (time-limited links to files in the private bucket), I added the required permission via the following command (using the console UI didn't work):
+- To enable App Engine to create signed blobs (time-limited links to files in the private bucket), I added the required permission via the following command (using the console UI didn't work, [this](https://stackoverflow.com/a/76493825) helped):
   ```
   gcloud projects add-iam-policy-binding probcomp-caliban --member=serviceAccount:probcomp-caliban@appspot.gserviceaccount.com --role='roles/iam.serviceAccountTokenCreator'
   ```
 
-### SSL 
+### SSL / Custom Domains
+
+To publish to `www.gen.dev`, set `SUBDOMAIN` to `www`. To publish to a `PARENT_DOMAIN` other than `gen.dev`, an additional custom domain must be added via App Engine in Google Cloud.
 
 [These instructions](https://gist.github.com/patmigliaccio/d559035e1aa7808705f689b20d7b3fd3) were essential to enabling SSL for a wildcard 
 subdomain on App Engine.  I created an origin certificate in Cloudflare, appended the [Cloudflare Origin CA root certificate (ECC PEM)](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca#cloudflare-origin-ca-root-certificate) to the PEM file, and converted the private key to RSA using the following command (note the `-traditional` flag):

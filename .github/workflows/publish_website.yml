@@ -16,9 +16,6 @@ jobs:
       contents: 'read'
       id-token: 'write'
 
-    env:
-      WEBSITE_DIR: './public'
-
     steps:
     - uses: 'actions/checkout@v4'
 
@@ -32,4 +29,8 @@ jobs:
 
     - name: Deploy to Google Cloud Storage
       run: | 
-        gcloud storage rsync --recursive --delete-unmatched-destination-objects  --cache-control 'public, max-age=60' $WEBSITE_DIR gs://gen-website-private/${{github.repository}}
+        WEBSITE_DIR='./public'
+        PARENT_DOMAIN='gen.dev'
+        SUBDOMAIN=${{github.event.repository.name}}
+        BUCKET_PATH="gs://gen-website-private/$PARENT_DOMAIN/$SUBDOMAIN"
+        gcloud storage rsync --recursive --delete-unmatched-destination-objects --cache-control 'public, max-age=60' $WEBSITE_DIR $BUCKET_PATH

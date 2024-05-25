@@ -5,8 +5,8 @@
 // - Paths without an extension are served `index.html` to support Single Page Applications (SPAs).
 // - Paths ending with a slash are served the `index.html` of the directory.
 
-// URLs are expected to be in the form `REPO.gen.dev/foo` for production or,
-// for development/testing, `localhost:3000/REPO/foo`.
+// URLs are expected to be in the form `subdomain.gen.dev/foo` for production or,
+// for development/testing, `localhost:3000/subdomain/foo`.
 
 import { Storage } from '@google-cloud/storage';
 import express from 'express';
@@ -15,8 +15,6 @@ import path from 'path';
 import { getMimeType } from 'stream-mime-type';
 
 const { PORT, BUCKET_NAME } = process.env;
-const HOST_REPO_REGEX = /^(.+)\.gen\.dev$/;
-const BUCKET_PREFIX = 'probcomp'
 
 const HTML_MAX_AGE = 60;
 
@@ -65,19 +63,19 @@ const redirectFile = async (res, path) => {
     return res.redirect(301, signedUrl);
 };
 
-const handleFileRequest = async (repo, filePath, res) => {
+const handleFileRequest = async (parentDomain, subDomain, filePath, res) => {
     // Handles file requests by determining the appropriate file path and serving the file.
     
     if (filePath.endsWith('/')) {
         // If the path ends with '/', serve the directory index.html
         filePath = path.join(filePath, 'index.html');
     } else if (!getExtension(filePath)) {
-        // If there is no extension, serve the main repo index.html
+        // If there is no extension, serve the subdomain's index.html
         filePath = 'index.html';
     }
 
     // Construct the full path in the bucket
-    const bucketPath = path.join(BUCKET_PREFIX, repo, filePath);
+    const bucketPath = path.join(parentDomain, subDomain, filePath);
     try {
         // Serve HTML files directly, otherwise redirect to a signed URL
         if (filePath.endsWith('.html')) {
@@ -98,22 +96,23 @@ const handleFileRequest = async (repo, filePath, res) => {
 };
 
 if (process.env.ENV == 'dev') {
-    app.get('/:repo/*', async (req, res) => {
-        await handleFileRequest(req.params.repo, req.params[0], res);
+    app.get('/:subDomain/*', async (req, res) => {
+        await handleFileRequest('gen.dev', req.params.subDomain, req.params[0], res);
     });
     
-    app.get('/:repo', async (req, res) => {
-        await handleFileRequest(req.params.repo, '', res);
+    app.get('/:subDomain', async (req, res) => {
+        await handleFileRequest('gen.dev', req.params.subDomain, '', res);
     });
 }
 
 app.get('/*', async (req, res) => {
     const host = req.hostname;
-    const match = host.match(HOST_REPO_REGEX);
-    if (match) {
-        const repo = match[1];
+    const hostParts = host.split('.');
+    if (hostParts.length >= 3) {
+        const subDomain = hostParts[0];
+        const parentDomain = hostParts.slice(1).join('.');
         const filePath = req.params[0];
-        await handleFileRequest(repo, filePath, res);
+        await handleFileRequest(parentDomain, subDomain, filePath, res);
     } else {
         res.status(404).send('Not Found');
     }
