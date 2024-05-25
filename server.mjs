@@ -23,7 +23,7 @@ const storage = new Storage();
 const bucket = storage.bucket(BUCKET_NAME);
 
 const generateSignedUrl = memoizee(async (bucketPath) => {
-    console.log('generate signed url for ', bucketPath)
+    // console.log('generate signed url for ', bucketPath)
     const options = {
         version: 'v4',
         action: 'read',
