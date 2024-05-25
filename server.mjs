@@ -60,13 +60,14 @@ const pipeFile = async (res, path) => {
 
 const redirectFile = async (res, path) => {
     const signedUrl = await generateSignedUrl(bucket.file(path));
+    res.setHeader('Expires', new Date(Date.now() + 60 * 1000).toUTCString());
     return res.redirect(301, signedUrl);
 };
 
 const handleFileRequest = async (parentDomain, subDomain, filePath, res) => {
     // Handles file requests by determining the appropriate file path and serving the file.
     
-    if (filePath.endsWith('/')) {
+    if (filePath.endswith('/')) {
         // If the path ends with '/', serve the directory index.html
         filePath = path.join(filePath, 'index.html');
     } else if (!getExtension(filePath)) {
