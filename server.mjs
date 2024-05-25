@@ -23,14 +23,13 @@ const storage = new Storage();
 const bucket = storage.bucket(BUCKET_NAME);
 
 const generateSignedUrl = memoizee(async (bucketPath) => {
-    // console.log('generate signed url for ', bucketPath)
     const options = {
         version: 'v4',
         action: 'read',
         expires: Date.now() + 60 * 60 * 1000, // Signed URL is valid for 60 minutes
     };
     const [url] = await bucket.file(bucketPath).getSignedUrl(options);
-    return url;
+    return [url, options.expires];
 }, { maxAge: 50 * 60 * 1000 }); // Cache for 50 minutes
 
 const getExtension = (path) => {
@@ -60,10 +59,14 @@ const pipeFile = async (res, path) => {
 };
 
 const redirectFile = async (res, path) => {
-    const signedUrl = await generateSignedUrl(path);
-    res.setHeader('Expires', new Date(Date.now() + 60 * 1000).toUTCString());
-    res.setHeader('Cache-Control', `public, max-age=${HTML_MAX_AGE}`);
-    return res.redirect(301, signedUrl);
+    // in practice, IAP (Identity Aware Proxy) is adding cache-busting headers to 
+    // this redirect because it is behind an auth wall. I haven't figured out a way 
+    // to circumvent them for these static assets.
+    const [signedUrl, expires] = await generateSignedUrl(path);
+    const maxAge = (expires - Date.now()) / 1000; // Calculate max-age in seconds
+    res.setHeader('Expires', new Date(expires).toUTCString());
+    res.setHeader('Cache-Control', `public, max-age=${maxAge}`);
+    return res.redirect(302, signedUrl); 
 };
 
 const handleFileRequest = async (parentDomain, subDomain, filePath, res) => {
