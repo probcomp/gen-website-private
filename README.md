@@ -10,16 +10,24 @@ Your repo will be served from its own subdomain: `<REPO>.gen.dev`. Magic!
 
 ### Who can access these websites?
 
-Members of `all@chi-fro.org` and `genjax-users@chi-fro.org` have access. 
+Members of the Google Groups `genjax-users@chi-fro.org` and `all@chi-fro.org` have access. To grant new users access, add them to one of these groups.
 
-Access is controlled via [Identity-Aware Proxy](https://console.cloud.google.com/security/iap?referrer=search&project=probcomp-caliban)
-by adding the `IAP-secured Web App User` role to a "principal". The easiest way to do this in aggregate is by using Google Groups.
+### How can I make my website public?
+
+To make a website public, publish it to GitHub Pages (or another public environment) and ask tech-admin@chi-fro.org to point your subdomain (eg. `YOUR_REPO.gen.dev`) at the new site. Due to how [IAP](https://cloud.google.com/security/products/iap) works, it's not possible to manage visibility at a granular level in this service.
+
+## Admin / Implementation Notes 
+
+Private websites are served by a single App Engine (Standard Environment) instance. Access to the website is controlled via [Identity-Aware Proxy](https://console.cloud.google.com/security/iap?referrer=search&project=probcomp-caliban). 
+
+To grant access to new users, add them to one of the Google Groups that has access. To grant access to new groups, add the `IAP-secured Web App User` role to an IAM principal.
+
 
 ### Authentication Notes
 
-Instead of using secret Service Account variables, access to Google Cloud services is managed via 
+Access to Google Cloud services is managed via 
 [Workload Identity Federation through a Service Account](https://github.com/google-github-actions/auth?tab=readme-ov-file#workload-identity-federation-through-a-service-account)
-using the [google-github](https://github.com/google-github-actions/auth) action.
+using the [google-github](https://github.com/google-github-actions/auth) action. This avoids managing secrets.
 
 We will now find in our GCP account:
 
@@ -43,8 +51,9 @@ We will now find in our GCP account:
 There is also a second identity pool, `gen-website-private-publishers`, which grants all probcomp repositories access to the private bucket 
 within GitHub Actions.
 
-- Using this identity pool, a GitHub action in any probcomp website can modify the `gen-website-private` bucket without restriction.
-- To enable App Engine to create signed blobs (time-limited links to files in the private bucket), I added the required permission via the following command (using the console UI didn't work, [this](https://stackoverflow.com/a/76493825) helped):
+Using this identity pool, a GitHub action in any probcomp website can modify the `gen-website-private` bucket without restriction.
+
+To enable App Engine to create signed blobs (time-limited links to files in the private bucket), I added the required permission via the following command (using the console UI didn't work, [this](https://stackoverflow.com/a/76493825) helped):
   ```
   gcloud projects add-iam-policy-binding probcomp-caliban --member=serviceAccount:probcomp-caliban@appspot.gserviceaccount.com --role='roles/iam.serviceAccountTokenCreator'
   ```
