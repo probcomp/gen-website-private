@@ -14,7 +14,7 @@ Members of the Google Groups `genjax-users@chi-fro.org` and `all@chi-fro.org` ha
 
 ### How can I make my website public?
 
-To make a website public, publish it to GitHub Pages (or another public environment) and ask tech-admin@chi-fro.org to point your subdomain (eg. `YOUR_REPO.gen.dev`) at the new site. Due to how [IAP](https://cloud.google.com/security/products/iap) works, it's not possible to manage visibility at a granular level in this service.
+To make a website public, publish it to GitHub Pages (or another public environment) and ask tech-admin@chi-fro.org to point your subdomain (eg. `YOUR_REPO.gen.dev`) at the new site. There is a GitHub Action called "Set CNAME Record for gen.dev" for this purpose. Due to how [IAP](https://cloud.google.com/security/products/iap) works, it's not possible to manage visibility at a granular level in this service.
 
 ## Admin / Implementation Notes 
 

@@ -1,4 +1,4 @@
-name: Create or Modify CNAME Record in CloudFlare
+name: Set CNAME Record for gen.dev
 
 on:
   workflow_dispatch:
