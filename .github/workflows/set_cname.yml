@@ -28,13 +28,13 @@ jobs:
         SUBDOMAIN=${{ github.event.inputs.subdomain }}
         TARGET=${{ github.event.inputs.target }}
         
-        # Check if the CNAME record already exists
+        echo "Checking if the CNAME record already exists for subdomain: ${SUBDOMAIN}"
         RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records?type=CNAME&name=${SUBDOMAIN}" \
           -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-          -H "Content-Type: application/json" | jq -r '.result[0].id')
+          -H "Content-Type: application/json" | jq -r '.result[] | select(.name=="'"${SUBDOMAIN}"'") | .id')
         
-        if [ "$RECORD_ID" = "null" ]; then
-          # Create a new CNAME record
+        if [ -z "$RECORD_ID" ]; then
+          echo "No existing CNAME record found. Creating a new CNAME record for subdomain: ${SUBDOMAIN}"
           curl -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
@@ -46,7 +46,7 @@ jobs:
               "proxied": false
             }'
         else
-          # Update the existing CNAME record
+          echo "Existing CNAME record found with ID: ${RECORD_ID}. Updating the CNAME record for subdomain: ${SUBDOMAIN}"
           curl -X PUT "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records/${RECORD_ID}" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
@@ -58,3 +58,4 @@ jobs:
               "proxied": false
             }'
         fi
+
