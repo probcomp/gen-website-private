@@ -4,9 +4,9 @@ This repo contains code and workflows that enable probcomp repositories to publi
 
 ### I manage a probcomp repo. How do I use this?
 
-Copy the `publish_website.yml` action into your repo under `.github/workflows`, or copy its contents into an existing action. Customize the `WEBSITE_DIR` to be the directory you want to publish. Decide how and when you want your website to be published (see the `on` block in `publish_website.yml` for ideas). You will probably want to add some kind of build step before the deploy job.
+Create a GitHub action which builds your repo's website, and then follow the example in `.github/workflows/publish_private_website_example.yml`. You'll need to create an artifact containing your website files (at the end of your job where you build the site), and then pass that artifact's name to the action `probcomp/gen-website-private/.github/workflows/publish_private_website.yml@main`.
 
-Your repo will be served from its own subdomain: `<REPO>.gen.dev`. Magic!
+Your repo will be served from its own subdomain: `<REPO>.gen.dev`.
 
 ### Who can access these websites?
 
@@ -14,7 +14,9 @@ Members of the Google Groups `genjax-users@chi-fro.org` and `all@chi-fro.org` ha
 
 ### How can I make my website public?
 
-To make a website public, publish it to GitHub Pages (or another public environment) and ask tech-admin@chi-fro.org to point your subdomain (eg. `YOUR_REPO.gen.dev`) at the new site. There is a GitHub Action called "Set CNAME Record for gen.dev" for this purpose. Due to how [IAP](https://cloud.google.com/security/products/iap) works, it's not possible to manage visibility at a granular level in this service.
+To make a website public, publish it to GitHub Pages (or another public environment) and ask tech-admin@chi-fro.org to point your subdomain (eg. `YOUR_REPO.gen.dev`) at the new site. There is a GitHub Action called "Set CNAME Record for gen.dev" for this purpose. 
+
+(Due to how [IAP](https://cloud.google.com/security/products/iap) works, it's not possible to manage visibility at a granular level in the app engine instance that manages private websites.)
 
 ## Admin / Implementation Notes 
 
