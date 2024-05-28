@@ -37,7 +37,7 @@ jobs:
       run: | 
         WEBSITE_DIR=${{inputs.website_dir}}
         PARENT_DOMAIN=${{inputs.parent_domain}}
-        SUBDOMAIN=${{ inputs.subdomain == '' ? github.event.repository.name : inputs.subdomain }}
+        SUBDOMAIN=${{ inputs.subdomain == '' && github.event.repository.name || inputs.subdomain }}
         BUCKET_PATH="gs://gen-website-private/$PARENT_DOMAIN/$SUBDOMAIN"
         gcloud storage rsync --recursive --delete-unmatched-destination-objects --cache-control 'public, max-age=60' $WEBSITE_DIR $BUCKET_PATH
         echo "Published directory $WEBSITE_DIR to $SUBDOMAIN.$PARENT_DOMAIN ($BUCKET_PATH)"
