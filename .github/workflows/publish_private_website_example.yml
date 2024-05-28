@@ -1,5 +1,3 @@
-.github/workflows/test_publish_private_website.yml
-# Start Generation Here
 name: Publish on push to main
 
 on:
