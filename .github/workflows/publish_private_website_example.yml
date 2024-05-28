@@ -16,7 +16,7 @@ jobs:
 
   publish:
     needs: prepare
-    runs-on: ubuntu-latest
     uses: probcomp/gen-website-private/.github/workflows/publish_private_website.yml@main
     with:
       website_dir: './public'
+
