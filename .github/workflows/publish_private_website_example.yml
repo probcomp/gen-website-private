@@ -9,7 +9,7 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Prepend timestamp to index.html
       run: |
         echo "Published at: $(date)<br/>" | cat - ./public/index.html > temp && mv temp ./public/index.html
