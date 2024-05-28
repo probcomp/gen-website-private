@@ -1,0 +1,24 @@
+.github/workflows/test_publish_private_website.yml
+# Start Generation Here
+name: Publish on push to main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Prepend timestamp to index.html
+      run: |
+        echo "Published at: $(date)<br/>" | cat - ./public/index.html > temp && mv temp ./public/index.html
+
+    - name: Publish private website
+      uses: probcomp/gen-website-private/.github/workflows/publish_private_website.yml@main
+      with:
+        website_dir: './public'

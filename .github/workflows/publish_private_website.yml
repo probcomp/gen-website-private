@@ -2,12 +2,18 @@ name: Publish a website directory to a private Gen website.
 
 on:
   # allow this workflow to be triggered manually from the GitHub UI
-  workflow_dispatch:
-
-  # trigger this workflow on every push to `main`
-  push:
-    branches:
-      - main
+  workflow_call:
+    inputs:
+      website_dir:
+        type: string
+        required: true
+      parent_domain:
+        type: string
+        required: false 
+        default: 'gen.dev'
+      subdomain:
+        type: string 
+        required: false 
 
 jobs:
   Deploy:
@@ -29,8 +35,9 @@ jobs:
 
     - name: Deploy to Google Cloud Storage
       run: | 
-        WEBSITE_DIR='./public'
-        PARENT_DOMAIN='gen.dev'
-        SUBDOMAIN=${{github.event.repository.name}}
+        WEBSITE_DIR=${{inputs.website_dir}}
+        PARENT_DOMAIN=${{inputs.parent_domain}}
+        SUBDOMAIN=${{ inputs.subdomain == '' ? github.event.repository.name : inputs.subdomain }}
         BUCKET_PATH="gs://gen-website-private/$PARENT_DOMAIN/$SUBDOMAIN"
         gcloud storage rsync --recursive --delete-unmatched-destination-objects --cache-control 'public, max-age=60' $WEBSITE_DIR $BUCKET_PATH
+        echo "Published directory $WEBSITE_DIR to $SUBDOMAIN.$PARENT_DOMAIN ($BUCKET_PATH)"
