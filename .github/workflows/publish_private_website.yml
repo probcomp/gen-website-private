@@ -4,7 +4,7 @@ on:
   # allow this workflow to be triggered manually from the GitHub UI
   workflow_call:
     inputs:
-      website_dir:
+      artifact:
         type: string
         required: true
       parent_domain:
@@ -32,10 +32,14 @@ jobs:
         workload_identity_provider: 'projects/110275315150/locations/global/workloadIdentityPools/gen-website-private-publishers/providers/github'
         service_account: 'gen-website-private-admin@probcomp-caliban.iam.gserviceaccount.com'
         audience: '//iam.googleapis.com/projects/110275315150/locations/global/workloadIdentityPools/gen-website-private-publishers/providers/github'
-
+    
+    - uses: 'actions/download-artifact@v4'
+      with:
+        name: ${{inputs.artifact}}
+        path: ./website-artifact
     - name: Deploy to Google Cloud Storage
       run: | 
-        WEBSITE_DIR=${{inputs.website_dir}}
+        WEBSITE_DIR=./website-artifact
         PARENT_DOMAIN=${{inputs.parent_domain}}
         SUBDOMAIN=${{ inputs.subdomain == '' && github.event.repository.name || inputs.subdomain }}
         BUCKET_PATH="gs://gen-website-private/$PARENT_DOMAIN/$SUBDOMAIN"

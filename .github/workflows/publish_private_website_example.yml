@@ -1,4 +1,4 @@
-name: Publish on push to main
+name: Example of publishing a private website
 
 on:
   push:
@@ -13,10 +13,16 @@ jobs:
     - name: Prepend timestamp to index.html
       run: |
         echo "Published at: $(date)<br/>" | cat - ./public/index.html > temp && mv temp ./public/index.html
+    - name: Create website artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: website
+        path: ./public
 
   publish:
     needs: prepare
     uses: probcomp/gen-website-private/.github/workflows/publish_private_website.yml@main
     with:
-      website_dir: './public'
+      artifact: website
+
 
