@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write 
+  
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -24,5 +27,6 @@ jobs:
     uses: probcomp/gen-website-private/.github/workflows/publish_private_website.yml@main
     with:
       artifact: website
+
 
 

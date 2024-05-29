@@ -4,7 +4,7 @@ This repo contains code and workflows that enable probcomp repositories to publi
 
 ### I manage a probcomp repo. How do I use this?
 
-Create a GitHub action which builds your repo's website, and then follow the example in `.github/workflows/publish_private_website_example.yml`. You'll need to create an artifact containing your website files (at the end of your job where you build the site), and then pass that artifact's name to the action `probcomp/gen-website-private/.github/workflows/publish_private_website.yml@main`.
+Create a GitHub action which builds your repo's website, and then follow the example in `.github/workflows/publish_private_website_example.yml`. You'll need to create an artifact containing your website files (at the end of your job where you build the site), and then pass that artifact's name to the action `probcomp/gen-website-private/.github/workflows/publish_private_website.yml@main`. The action requires `id-token: write` permissions.
 
 Your repo will be served from its own subdomain: `<REPO>.gen.dev`.
 
