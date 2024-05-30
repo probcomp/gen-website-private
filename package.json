@@ -11,7 +11,7 @@
     "stream-mime-type": "^2.0.0"
   },
   "scripts": {
-    "start": "node src/server.mjs",
+    "start": "node src/start.mjs",
     "dev": "GOOGLE_APPLICATION_CREDENTIALS=key.json BUCKET_NAME=gen-website-private ENV=dev PORT=3000 nodemon src/start.mjs",
     "dev-rsync": "gcloud storage rsync --recursive --cache-control 'public, max-age=60' ./public/gen.dev/local-test gs://gen-website-private/gen.dev/local-test",
     "tail": "gcloud app logs tail",
