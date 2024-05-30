@@ -2,8 +2,9 @@
 
 // - HTML files are piped from the bucket.
 // - Other static files are redirected to a signed bucket URL.
-// - Paths without an extension are served `index.html` to support Single Page Applications (SPAs).
-// - Paths ending with a slash are served the `index.html` of the directory.
+// - Paths without an extension:
+//   - first we check for an index.html at /path/index.html,
+//   - backoff to the root `index.html` for that subdomain
 
 // In prod, we map `subdomain.parent.com` to `parent.com/subdomain` in the bucket.
 // In development, we map `localhost:3000/parent.com/subdomain` to `parent.com/subdomain` in the bucket.
@@ -13,12 +14,13 @@ import express from 'express';
 import memoizee from 'memoizee';
 import path from 'path';
 import { getMimeType } from 'stream-mime-type';
+import * as assert from 'assert'
 
-const { PORT, BUCKET_NAME } = process.env;
+const { BUCKET_NAME } = process.env;
 
 const HTML_MAX_AGE = 60;
 
-const app = express();
+export const app = express();
 const storage = new Storage();
 const bucket = storage.bucket(BUCKET_NAME);
 
@@ -37,18 +39,6 @@ const getExtension = (path) => {
     if (i !== -1) {
         return path.substring(i + 1);
     }
-};
-
-const serveHtml = async (res, path) => {
-    const htmlFile = bucket.file(path);
-    res.setHeader('Content-Type', 'text/html');
-    res.setHeader('Cache-Control', `private, max-age=${HTML_MAX_AGE}`);
-    return new Promise((resolve, reject) => {
-        htmlFile.createReadStream()
-            .on('error', reject)
-            .pipe(res)
-            .on('finish', resolve);
-    });
 };
 
 const pipeFile = async (res, path) => {
@@ -70,33 +60,92 @@ const redirectFile = async (res, path) => {
     const maxAge = (expires - Date.now()) / 1000; // Calculate max-age in seconds
     res.setHeader('Expires', new Date(expires).toUTCString());
     res.setHeader('Cache-Control', `private, max-age=${maxAge}`);
-    return res.redirect(302, signedUrl); 
+    res.redirect(302, signedUrl);
+};
+
+const serveHtml = async (res, path) => {
+    const htmlFile = bucket.file(path);
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Cache-Control', `private, max-age=${HTML_MAX_AGE}`);
+    return new Promise((resolve, reject) => {
+        let rejectLogged = (err) => {
+            reject(err)
+        }
+        htmlFile.createReadStream()
+            .on('error', rejectLogged)
+            .pipe(res)
+            .on('finish', resolve);
+    });
+};
+
+/**
+ * Generates a list of potential file paths based on the given file path.
+ * The function considers different scenarios such as root, directory, and page paths,
+ * and provides fallbacks to ensure a valid file path is returned.
+ *
+ * @param {string} filePath - The input file path to generate potential paths for.
+ * @returns {string[]} An array of potential file paths.
+ */
+const paths = (filePath) => {
+    const results = [];
+    
+    if (filePath === "" || filePath === "/") {
+        // Root path scenario
+        results.push("index.html");
+    } else if (filePath.endsWith('/')) {
+        // Directory path scenario with fallback
+        results.push(`${filePath}index.html`);
+        results.push("index.html");
+    } else {
+        // Page path scenario with fallback to directory and root
+        results.push(`${filePath}.html`);
+        results.push(`${filePath}/index.html`);
+        results.push("index.html");
+    }
+    
+    return results;
+};
+
+function testPaths() {
+    assert.deepStrictEqual(paths("foo"), ['foo.html', 'foo/index.html', 'index.html']);
+    assert.deepStrictEqual(paths("foo/"), ['foo/index.html', 'index.html']);
+    assert.deepStrictEqual(paths("/"), ['index.html']);
+    assert.deepStrictEqual(paths(""), ['index.html']);
+    console.log("All tests passed!");
+}
+
+// testPaths()
+
+const serveHtmlWithFallbacks = async (res, parentDomain, subDomain, filePaths) => {
+    for (const filePath of filePaths) {
+        const fullPath = path.join(parentDomain, subDomain, filePath);
+        try {
+            await serveHtml(res, fullPath);
+            return; // If serveHtml succeeds, exit the function
+        } catch (err) {
+            if (err.code !== 404) {
+                throw err; // If the error is not a 404, rethrow it
+            }
+        }
+    }
+    res.status(404).send('File not found');
 };
 
 const handleFileRequest = async (parentDomain, subDomain, filePath, res) => {
-    // Handles file requests by determining the appropriate file path and serving the file.
-    
-    if (filePath.endsWith('/')) {
-        // If the path ends with '/', serve the directory index.html
-        filePath = path.join(filePath, 'index.html');
-    } else if (!getExtension(filePath)) {
-        // If there is no extension, serve the subdomain's index.html
-        filePath = 'index.html';
-    }
-
-    // Construct the full path in the bucket
-    const bucketPath = path.join(parentDomain, subDomain, filePath);
-    try {
-        // Serve HTML files directly, otherwise redirect to a signed URL
-        if (filePath.endsWith('.html')) {
-            await serveHtml(res, bucketPath);
+    const fileExtension = getExtension(filePath);
+    // Paths with non-html file extensions redirect to the bucket
+    try { 
+        if (fileExtension) {
+            if (fileExtension == 'html') {
+                await serveHtml(res, path.join(parentDomain, subDomain, filePath));
+            } else {
+                await redirectFile(res, path.join(parentDomain, subDomain, filePath));
+            }
         } else {
-            await redirectFile(res, bucketPath);
+            await serveHtmlWithFallbacks(res, parentDomain, subDomain, paths(filePath));
         }
     } catch (error) {
-        // Handle errors, specifically 404 for file not found
         if (error.code === 404) {
-            console.log('File not found', bucketPath);
             res.status(404).send('File not found');
         } else {
             console.error('Error fetching file:', error);
@@ -109,7 +158,7 @@ if (process.env.ENV == 'dev') {
     app.get('/:parentDomain/:subDomain/*', async (req, res) => {
         await handleFileRequest(req.params.parentDomain, req.params.subDomain, req.params[0], res);
     });
-    
+
     app.get('/:parentDomain/:subDomain', async (req, res) => {
         await handleFileRequest(req.params.parentDomain, req.params.subDomain, '', res);
     });
@@ -123,11 +172,14 @@ app.get('/*', async (req, res) => {
         const parentDomain = hostParts.slice(1).join('.');
         const filePath = req.params[0];
         await handleFileRequest(parentDomain, subDomain, filePath, res);
+        
     } else {
         res.status(404).send('Not Found');
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+export const serve = (PORT) => {
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });    
+}
