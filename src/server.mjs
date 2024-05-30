@@ -117,12 +117,12 @@ function testPaths() {
 // testPaths()
 
 const serveHtmlWithFallbacks = async (res, parentDomain, subDomain, filePaths) => {
-    for (const filePath of filePaths) {
+    for (let filePath of filePaths) {
         if (filePath.startsWith('redirect:')) {
             filePath = process.env.ENV == 'dev' ? 
                 path.join(parentDomain, subDomain, filePath.slice(9)) :
                 path.join('/', filePath.slice(9))
-            res.redirect(302, path);
+            res.redirect(302, filePath);
             return;
         }
         const fullPath = path.join(parentDomain, subDomain, filePath);
