@@ -11,12 +11,17 @@
     "stream-mime-type": "^2.0.0"
   },
   "scripts": {
-    "start": "node server.mjs",
-    "dev": "GOOGLE_APPLICATION_CREDENTIALS=key.json BUCKET_NAME=gen-website-private ENV=dev PORT=3000 nodemon server.mjs",
+    "start": "node src/start.mjs",
+    "dev": "GOOGLE_APPLICATION_CREDENTIALS=key.json BUCKET_NAME=gen-website-private ENV=dev PORT=3000 nodemon src/start.mjs",
     "dev-rsync": "gcloud storage rsync --recursive --cache-control 'public, max-age=60' ./public/gen.dev/local-test gs://gen-website-private/gen.dev/local-test",
-    "tail": "gcloud app logs tail"
+    "tail": "gcloud app logs tail",
+    "test": "GOOGLE_APPLICATION_CREDENTIALS=key.json BUCKET_NAME=gen-website-private ENV=dev mocha tests/server_test.mjs"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
-  }
+    "chai": "^5.1.1",
+    "mocha": "^10.4.0",
+    "nodemon": "^3.1.0",
+    "supertest": "^7.0.0"
+  },
+  "type": "module"
 }
