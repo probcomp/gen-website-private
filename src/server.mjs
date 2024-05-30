@@ -99,7 +99,7 @@ const paths = (filePath) => {
     } else {
         // Page path scenario with fallback to directory and root
         results.push(`${filePath}.html`);
-        results.push(`${filePath}/index.html`);
+        results.push(`redirect:${filePath}/`);
         results.push("index.html");
     }
     
@@ -107,7 +107,7 @@ const paths = (filePath) => {
 };
 
 function testPaths() {
-    assert.deepStrictEqual(paths("foo"), ['foo.html', 'foo/index.html', 'index.html']);
+    assert.deepStrictEqual(paths("foo"), ['foo.html', 'redirect:foo/', 'index.html']);
     assert.deepStrictEqual(paths("foo/"), ['foo/index.html', 'index.html']);
     assert.deepStrictEqual(paths("/"), ['index.html']);
     assert.deepStrictEqual(paths(""), ['index.html']);
@@ -118,6 +118,10 @@ function testPaths() {
 
 const serveHtmlWithFallbacks = async (res, parentDomain, subDomain, filePaths) => {
     for (const filePath of filePaths) {
+        if (filePath.startsWith('redirect:')) {
+            res.redirect(302, path.join(parentDomain, subDomain, filePath.slice(9)));
+            return;
+        }
         const fullPath = path.join(parentDomain, subDomain, filePath);
         try {
             await serveHtml(res, fullPath);

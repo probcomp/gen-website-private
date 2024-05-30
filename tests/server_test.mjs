@@ -27,10 +27,10 @@ describe('Server Functionality Tests', function() {
         expect(response.text).to.contain('`index.html`'); // Check for the file path
     });
 
-    it('should serve a-directory/index.html for /a-directory', async function() {
+    it('should redirect /a-directory to /a-directory/ if /a-directory.html does not exist', async function() {
         const response = await request(app).get(`/${bucketPath}/${subDomain}/a-directory`);
-        expect(response.status).to.equal(200);
-        expect(response.text).to.contain('`a-directory/index.html`'); // Check for the file path
+        expect(response.status).to.equal(302);
+        expect(response.headers.location).to.equal(`${bucketPath}/${subDomain}/a-directory/`);
     });
 
     it('should serve a-directory/index.html for /a-directory/', async function() {
