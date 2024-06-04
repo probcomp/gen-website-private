@@ -30,8 +30,7 @@ describe('Server Functionality Tests', function() {
     it('should redirect /a-directory to /a-directory/ if /a-directory.html does not exist', async function() {
         const response = await request(app).get(`/${bucketPath}/${subDomain}/a-directory`);
         expect(response.status).to.equal(302);
-        console.log("LOC", response.headers.location)
-        expect(response.headers.location).to.equal(`${bucketPath}/${subDomain}/a-directory/`);
+        expect(response.headers.location).to.equal(`/${bucketPath}/${subDomain}/a-directory/`);
     });
 
     it('should serve a-directory/index.html for /a-directory/', async function() {

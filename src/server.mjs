@@ -41,11 +41,26 @@ const getExtension = (path) => {
     }
 };
 
+const handleResponseError = (res, error) => {
+    if (error.code == '404') {
+        res.status(404).send('File not found');
+    } else {
+        res.status(500).send('Internal Server Error');
+    }
+}
+
 const pipeFile = async (res, path) => {
-    const { mime, stream } = await getMimeType(bucket.file(path).createReadStream(), { filename: path });
-    res.setHeader('Content-Type', mime);
-    res.setHeader('Cache-Control', `private, max-age=${HTML_MAX_AGE}`);
-    return stream.pipe(res);
+    try {
+        const bucketStream = bucket.file(path).createReadStream()
+        bucketStream.on('error', (error) => handleResponseError(res, error))
+        const { mime, stream } = await getMimeType(bucketStream, { filename: path });
+        res.setHeader('Content-Type', mime);
+        res.setHeader('Cache-Control', `private, max-age=${HTML_MAX_AGE}`);
+        stream.on('error', (err) => handleResponseError(res, err));
+        return stream.pipe(res);
+    } catch (err) {
+        handleResponseError(res, err)
+    }
 };
 
 const redirectFile = async (res, path) => {
@@ -88,7 +103,7 @@ const serveHtml = async (res, path) => {
  */
 const paths = (filePath) => {
     const results = [];
-    
+
     if (filePath === "" || filePath === "/") {
         // Root path scenario
         results.push("index.html");
@@ -99,10 +114,11 @@ const paths = (filePath) => {
     } else {
         // Page path scenario with fallback to directory and root
         results.push(`${filePath}.html`);
-        results.push(`redirect:${filePath}/`);
-        results.push("index.html");
+        results.push(`redirect:/${filePath}/`);
+        // results.push("index.html");
+        // enable this for SPAs
     }
-    
+
     return results;
 };
 
@@ -119,8 +135,8 @@ function testPaths() {
 const serveHtmlWithFallbacks = async (res, parentDomain, subDomain, filePaths) => {
     for (let filePath of filePaths) {
         if (filePath.startsWith('redirect:')) {
-            filePath = process.env.ENV == 'dev' ? 
-                path.join(parentDomain, subDomain, filePath.slice(9)) :
+            filePath = process.env.ENV == 'dev' ?
+                path.join('/', parentDomain, subDomain, filePath.slice(9)) :
                 path.join('/', filePath.slice(9))
             res.redirect(302, filePath);
             return;
@@ -138,38 +154,40 @@ const serveHtmlWithFallbacks = async (res, parentDomain, subDomain, filePaths) =
     res.status(404).send('File not found');
 };
 
-const handleFileRequest = async (parentDomain, subDomain, filePath, res) => {
-    const fileExtension = getExtension(filePath);
+const handleRequest = async (parentDomain, subDomain, filePath, req, res) => {
+    if (req.url.startsWith("/npm/")) {
+        // workaround for a Quarto issue, https://github.com/quarto-dev/quarto-cli/blob/bee87fb00ac2bad4edcecd1671a029b561c20b69/src/core/jupyter/widgets.ts#L120
+        // the embed-amd.js script tag should have a `data-jupyter-widgets-cdn-only` attribute (https://www.evanmarie.com/content/files/notebooks/ipywidgets.html)
+        res.redirect(302, `https://cdn.jsdelivr.net${req.url}`);
+        return;
+    }
+
+    const fileExtension = getExtension(filePath); 
     // Paths with non-html file extensions redirect to the bucket
-    try { 
+    try {
         if (fileExtension) {
             if (fileExtension === 'html') {
                 await serveHtml(res, path.join(parentDomain, subDomain, filePath));
-            } else if (fileExtension === 'css' || fileExtension === 'js') {
+            } else if (fileExtension === 'css' || fileExtension === 'js' || fileExtension == "map" || req.headers['sec-fetch-dest'] == 'script') {
                 await pipeFile(res, path.join(parentDomain, subDomain, filePath));
             } else {
                 await redirectFile(res, path.join(parentDomain, subDomain, filePath));
             }
         } else {
             await serveHtmlWithFallbacks(res, parentDomain, subDomain, paths(filePath));
-        }
+        } 
     } catch (error) {
-        if (error.code === 404) {
-            res.status(404).send('File not found');
-        } else {
-            console.error('Error fetching file:', error);
-            res.status(500).send('Internal Server Error');
-        }
+        handleResponseError(res, error)
     }
 };
 
 if (process.env.ENV == 'dev') {
     app.get('/:parentDomain/:subDomain/*', async (req, res) => {
-        await handleFileRequest(req.params.parentDomain, req.params.subDomain, req.params[0], res);
+        await handleRequest(req.params.parentDomain, req.params.subDomain, req.params[0], req, res);
     });
 
     app.get('/:parentDomain/:subDomain', async (req, res) => {
-        await handleFileRequest(req.params.parentDomain, req.params.subDomain, '', res);
+        await handleRequest(req.params.parentDomain, req.params.subDomain, '', req, res);
     });
 }
 
@@ -180,15 +198,15 @@ app.get('/*', async (req, res) => {
         const subDomain = hostParts[0];
         const parentDomain = hostParts.slice(1).join('.');
         const filePath = req.params[0];
-        await handleFileRequest(parentDomain, subDomain, filePath, res);
-        
+        await handleRequest(parentDomain, subDomain, filePath, req, res);
+
     } else {
-        res.status(404).send('Not Found');
+        res.status(404).send('File not found');
     }
 });
 
 export const serve = (PORT) => {
     app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
-    });    
+    });
 }
