@@ -70,3 +70,7 @@ subdomain on App Engine.  I created an origin certificate in Cloudflare, appende
 openssl rsa -in domain.com-YYYY-MM-dd.key -out domain.com-RSA-YYYY-MM-dd.key -traditional
 ```
 The certificate was free and expires in 15 years; it's only useful for use between Cloudflare and App Engine. (If we would switch DNS providers we would need another wildcard subdomain SSL solution.)
+
+### CORS
+
+CORS support is handled by `cors-config.json` which was added to the bucket via `gsutil cors set cors-config.json gs://gen-website-private` ([details](https://stackoverflow.com/questions/45273514/google-cloud-storage-gcs-cors-wildcard))

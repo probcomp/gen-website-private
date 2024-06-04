@@ -1,0 +1,16 @@
+[
+    {
+        "origin": [
+            "https://*.gen.dev",
+            "https://gen.dev"
+        ],
+        "responseHeader": [
+            "Content-Type"
+        ],
+        "method": [
+            "GET",
+            "HEAD"
+        ],
+        "maxAgeSeconds": 3600
+    }
+]

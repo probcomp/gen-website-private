@@ -143,8 +143,10 @@ const handleFileRequest = async (parentDomain, subDomain, filePath, res) => {
     // Paths with non-html file extensions redirect to the bucket
     try { 
         if (fileExtension) {
-            if (fileExtension == 'html') {
+            if (fileExtension === 'html') {
                 await serveHtml(res, path.join(parentDomain, subDomain, filePath));
+            } else if (fileExtension === 'css' || fileExtension === 'js') {
+                await pipeFile(res, path.join(parentDomain, subDomain, filePath));
             } else {
                 await redirectFile(res, path.join(parentDomain, subDomain, filePath));
             }
