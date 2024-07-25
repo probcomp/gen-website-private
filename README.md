@@ -50,8 +50,7 @@ We will now find in our GCP account:
 4. When the service account is added to the identity pool, it also has an attribute mapping specified to restrict usage.
     - `attribute.repository` - `probcomp/gen-website-private`
 
-There is also a second identity pool, `gen-website-private-publishers`, which grants all probcomp repositories access to the private bucket 
-within GitHub Actions.
+There is also a second identity pool, `gen-website-private-publishers`, which grants all probcomp repositories access to the private bucket within GitHub Actions.
 
 Using this identity pool, a GitHub action in any probcomp website can modify the `gen-website-private` bucket without restriction.
 
@@ -74,3 +73,11 @@ The certificate was free and expires in 15 years; it's only useful for use betwe
 ### CORS
 
 CORS support is handled by `cors-config.json` which was added to the bucket via `gsutil cors set cors-config.json gs://gen-website-private` ([details](https://stackoverflow.com/questions/45273514/google-cloud-storage-gcs-cors-wildcard))
+
+### Accessing Files from Other Buckets
+
+This server now supports accessing files from any Google Cloud Storage bucket that grants read access to the `gen-website-private-admin@probcomp-caliban.iam.gserviceaccount.com` service account. You can access these files using the following URL pattern:
+
+```
+https://probcomp-caliban.uc.r.appspot.com/bucket/<BUCKET_NAME>/<FILE_PATH>
+```

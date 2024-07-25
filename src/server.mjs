@@ -22,15 +22,15 @@ const HTML_MAX_AGE = 60;
 
 export const app = express();
 const storage = new Storage();
-const bucket = storage.bucket(BUCKET_NAME);
+const default_bucket = storage.bucket(BUCKET_NAME);
 
-const generateSignedUrl = memoizee(async (bucketPath) => {
+const generateSignedUrl = memoizee(async (bucketName, bucketPath) => {
     const options = {
         version: 'v4',
         action: 'read',
         expires: Date.now() + 60 * 60 * 1000, // Signed URL is valid for 60 minutes
     };
-    const [url] = await bucket.file(bucketPath).getSignedUrl(options);
+    const [url] = await storage.bucket(bucketName).file(bucketPath).getSignedUrl(options);
     return [url, options.expires];
 }, { maxAge: 50 * 60 * 1000 }); // Cache for 50 minutes
 
@@ -51,7 +51,7 @@ const handleResponseError = (res, error) => {
 
 const pipeFile = async (res, path) => {
     try {
-        const bucketStream = bucket.file(path).createReadStream()
+        const bucketStream = default_bucket.file(path).createReadStream()
         bucketStream.on('error', (error) => handleResponseError(res, error))
         const { mime, stream } = await getMimeType(bucketStream, { filename: path });
         res.setHeader('Content-Type', mime);
@@ -71,7 +71,7 @@ const redirectFile = async (res, path) => {
     // caching of private content. These headers *should* only control the redirect itself, 
     // but they cause Safari to refuse to cache the destination as well. 
 
-    const [signedUrl, expires] = await generateSignedUrl(path);
+    const [signedUrl, expires] = await generateSignedUrl(BUCKET_NAME, path);
     const maxAge = (expires - Date.now()) / 1000; // Calculate max-age in seconds
     res.setHeader('Expires', new Date(expires).toUTCString());
     res.setHeader('Cache-Control', `private, max-age=${maxAge}`);
@@ -79,7 +79,7 @@ const redirectFile = async (res, path) => {
 };
 
 const serveHtml = async (res, path) => {
-    const htmlFile = bucket.file(path);
+    const htmlFile = default_bucket.file(path);
     res.setHeader('Content-Type', 'text/html');
     res.setHeader('Cache-Control', `private, max-age=${HTML_MAX_AGE}`);
     return new Promise((resolve, reject) => {
@@ -180,6 +180,24 @@ const handleRequest = async (parentDomain, subDomain, filePath, req, res) => {
         handleResponseError(res, error)
     }
 };
+
+
+// Add this new route handler
+app.get('/bucket/:bucketName/*', async (req, res) => {
+    const { bucketName } = req.params;
+    const filePath = req.params[0];
+
+    try {
+        const [signedUrl, expires] = await generateSignedUrl(bucketName, filePath);
+        const maxAge = (expires - Date.now()) / 1000; // Calculate max-age in seconds
+        res.setHeader('Expires', new Date(expires).toUTCString());
+        res.setHeader('Cache-Control', `private, max-age=${maxAge}`);
+        res.redirect(302, signedUrl);
+    } catch (error) {
+        console.error(`Error generating signed URL for ${bucketName}/${filePath}:`, error);
+        res.status(500).send('Internal Server Error');
+    }
+});
 
 if (process.env.ENV == 'dev') {
     app.get('/:parentDomain/:subDomain/*', async (req, res) => {
