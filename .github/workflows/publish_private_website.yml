@@ -25,6 +25,9 @@ jobs:
     steps:
     - uses: 'actions/checkout@v4'
 
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2    
+
     - name: Authenticate with Google Cloud
       uses: 'google-github-actions/auth@v2.1.3'
       with:
@@ -37,6 +40,7 @@ jobs:
       with:
         name: ${{inputs.artifact}}
         path: ./website-artifact
+        
     - name: Deploy to Google Cloud Storage
       run: | 
         WEBSITE_DIR=./website-artifact
