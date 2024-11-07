@@ -7,8 +7,7 @@
   "dependencies": {
     "@google-cloud/storage": "^7.11.1",
     "express": "^4.19.2",
-    "memoizee": "^0.4.17",
-    "stream-mime-type": "^2.0.0"
+    "memoizee": "^0.4.17"
   },
   "scripts": {
     "start": "node src/start.mjs",
@@ -19,9 +18,11 @@
   },
   "devDependencies": {
     "chai": "^5.1.1",
+    "create-cloudflare": "^2.31.2",
     "mocha": "^10.4.0",
     "nodemon": "^3.1.0",
-    "supertest": "^7.0.0"
+    "supertest": "^7.0.0",
+    "wrangler": "^3.85.0"
   },
   "type": "module"
 }

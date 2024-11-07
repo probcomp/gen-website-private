@@ -1,0 +1,8 @@
+name = "private-website-cache"
+main = "src/worker.js"
+compatibility_date = "2024-11-07"
+workers_dev = true
+
+[[routes]]
+pattern = "*.gen.dev/*"
+zone_name = "gen.dev"

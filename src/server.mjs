@@ -13,7 +13,6 @@ import { Storage } from '@google-cloud/storage';
 import express from 'express';
 import memoizee from 'memoizee';
 import path from 'path';
-import { getMimeType } from 'stream-mime-type';
 import * as assert from 'assert'
 
 const { BUCKET_NAME } = process.env;
@@ -49,39 +48,39 @@ const handleResponseError = (res, error) => {
     }
 }
 
-const pipeFile = async (res, path) => {
+const CACHE_POLICIES = {
+    HTML: { maxAge: 60, visibility: 'private' },
+    STATIC: { maxAge: 600, visibility: 'public' },
+    SIGNED_URL: { maxAge: 3000, visibility: 'public' },
+};
+
+const setCacheHeaders = (res, policy) => {
+    res.setHeader('X-Cache-Policy', JSON.stringify(policy));
+    res.setHeader('Cache-Control', `${policy.visibility}, max-age=${policy.maxAge}`);
+    res.setHeader('Expires', new Date(Date.now() + policy.maxAge * 1000).toUTCString());
+};
+
+const serveFile = async (res, path) => {
     try {
-        const bucketStream = default_bucket.file(path).createReadStream()
-        bucketStream.on('error', (error) => handleResponseError(res, error))
-        const { mime, stream } = await getMimeType(bucketStream, { filename: path });
-        res.setHeader('Content-Type', mime);
-        res.setHeader('Cache-Control', `private, max-age=${HTML_MAX_AGE}`);
+        const file = default_bucket.file(path);
+        const [metadata] = await file.getMetadata();
+        
+        setCacheHeaders(res, CACHE_POLICIES.STATIC);
+        res.setHeader('Content-Type', metadata.contentType);
+        res.setHeader('Content-Length', metadata.size);
+        
+        const stream = file.createReadStream();
         stream.on('error', (err) => handleResponseError(res, err));
         return stream.pipe(res);
     } catch (err) {
-        handleResponseError(res, err)
+        handleResponseError(res, err);
     }
-};
-
-const redirectFile = async (res, path) => {
-    // Redirects static asset requests to signed bucket URLs instead of piping them through 
-    // this server. Signed URLs are valid for one hour, and memoized. 
-
-    // Note: IAP (Identity Aware Proxy) adds cache-busting headers to all requests to prevent 
-    // caching of private content. These headers *should* only control the redirect itself, 
-    // but they cause Safari to refuse to cache the destination as well. 
-
-    const [signedUrl, expires] = await generateSignedUrl(BUCKET_NAME, path);
-    const maxAge = (expires - Date.now()) / 1000; // Calculate max-age in seconds
-    res.setHeader('Expires', new Date(expires).toUTCString());
-    res.setHeader('Cache-Control', `private, max-age=${maxAge}`);
-    res.redirect(302, signedUrl);
 };
 
 const serveHtml = async (res, path) => {
     const htmlFile = default_bucket.file(path);
     res.setHeader('Content-Type', 'text/html');
-    res.setHeader('Cache-Control', `private, max-age=${HTML_MAX_AGE}`);
+    setCacheHeaders(res, CACHE_POLICIES.HTML);
     return new Promise((resolve, reject) => {
         let rejectLogged = (err) => {
             reject(err)
@@ -162,22 +161,19 @@ const handleRequest = async (parentDomain, subDomain, filePath, req, res) => {
         return;
     }
 
-    const fileExtension = getExtension(filePath); 
-    // Paths with non-html file extensions redirect to the bucket
+    const fileExtension = getExtension(filePath);
     try {
         if (fileExtension) {
             if (fileExtension === 'html') {
                 await serveHtml(res, path.join(parentDomain, subDomain, filePath));
-            } else if (fileExtension === 'css' || fileExtension === 'js' || fileExtension == "map" || req.headers['sec-fetch-dest'] == 'script') {
-                await pipeFile(res, path.join(parentDomain, subDomain, filePath));
             } else {
-                await redirectFile(res, path.join(parentDomain, subDomain, filePath));
+                await serveFile(res, path.join(parentDomain, subDomain, filePath));
             }
         } else {
             await serveHtmlWithFallbacks(res, parentDomain, subDomain, paths(filePath));
-        } 
+        }
     } catch (error) {
-        handleResponseError(res, error)
+        handleResponseError(res, error);
     }
 };
 
