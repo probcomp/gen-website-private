@@ -48,6 +48,8 @@ export default {
           });
         }
 
+        // Remove the custom header since we've processed it
+        modifiedResponse.headers.delete('X-Cache-Info');
         return modifiedResponse;
       } catch (e) {
         console.error('Failed to parse cache info:', e);
