@@ -17,8 +17,6 @@ import * as assert from 'assert'
 
 const { BUCKET_NAME } = process.env;
 
-const HTML_MAX_AGE = 60;
-
 export const app = express();
 const storage = new Storage();
 const default_bucket = storage.bucket(BUCKET_NAME);
@@ -49,15 +47,33 @@ const handleResponseError = (res, error) => {
 }
 
 const CACHE_POLICIES = {
-    HTML: { maxAge: 60, visibility: 'private' },
-    STATIC: { maxAge: 600, visibility: 'public' },
-    SIGNED_URL: { maxAge: 3000, visibility: 'public' },
+    HTML: { maxAge: 60, visibility: 'private', staleWhileRevalidate: 30 },
+    STATIC: { maxAge: 86400, visibility: 'public', staleWhileRevalidate: 3600 }, // 24 hours for static assets
+    SIGNED_URL: { maxAge: 3000, visibility: 'public', staleWhileRevalidate: 300 },
 };
 
-const setCacheHeaders = (res, policy) => {
-    res.setHeader('X-Cache-Policy', JSON.stringify(policy));
-    res.setHeader('Cache-Control', `${policy.visibility}, max-age=${policy.maxAge}`);
-    res.setHeader('Expires', new Date(Date.now() + policy.maxAge * 1000).toUTCString());
+const setCacheHeaders = (res, policy, metadata = {}) => {
+    // Consolidate all cache-related information into a single custom header
+    const cacheInfo = {
+        policy,
+        expires: new Date(Date.now() + policy.maxAge * 1000).toUTCString(),
+        etag: metadata.etag,
+        lastModified: metadata.updated,
+        contentType: metadata.contentType,
+        contentLength: metadata.size
+    };
+    
+    res.setHeader('X-Cache-Info', JSON.stringify(cacheInfo));
+    
+    // Set standard headers anyway (for local development)
+    res.setHeader('Cache-Control', `${policy.visibility}, max-age=${policy.maxAge}, stale-while-revalidate=${policy.staleWhileRevalidate}`);
+    res.setHeader('Expires', cacheInfo.expires);
+    if (metadata.etag) {
+        res.setHeader('ETag', metadata.etag);
+    }
+    if (metadata.updated) {
+        res.setHeader('Last-Modified', metadata.updated);
+    }
 };
 
 const serveFile = async (res, path) => {
@@ -65,14 +81,9 @@ const serveFile = async (res, path) => {
         const file = default_bucket.file(path);
         const [metadata] = await file.getMetadata();
         
-        setCacheHeaders(res, CACHE_POLICIES.STATIC);
+        setCacheHeaders(res, CACHE_POLICIES.STATIC, metadata);
         res.setHeader('Content-Type', metadata.contentType);
         res.setHeader('Content-Length', metadata.size);
-        res.setHeader('Last-Modified', metadata.updated);
-        
-        if (metadata.etag) {
-            res.setHeader('ETag', metadata.etag);
-        }
         
         const stream = file.createReadStream();
         stream.on('error', (err) => handleResponseError(res, err));
@@ -87,13 +98,8 @@ const serveHtml = async (res, path) => {
         const htmlFile = default_bucket.file(path);
         const [metadata] = await htmlFile.getMetadata();
         
+        setCacheHeaders(res, CACHE_POLICIES.HTML, metadata);
         res.setHeader('Content-Type', 'text/html');
-        res.setHeader('Last-Modified', metadata.updated);
-        setCacheHeaders(res, CACHE_POLICIES.HTML);
-        
-        if (metadata.etag) {
-            res.setHeader('ETag', metadata.etag);
-        }
         
         return new Promise((resolve, reject) => {
             let rejectLogged = (err) => {
