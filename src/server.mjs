@@ -163,9 +163,35 @@ const serveHtmlWithFallbacks = async (res, parentDomain, subDomain, filePaths) =
     res.status(404).send('File not found');
 };
 
+const decodeJwt = (token) => {
+    if (!token) return null;
+    
+    // Split the token into parts
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    
+    try {
+        // Decode the payload (second part)
+        const payload = Buffer.from(parts[1], 'base64').toString();
+        return JSON.parse(payload);
+    } catch (e) {
+        console.error('Error decoding JWT:', e);
+        return null;
+    }
+};
+
+const logIapInfo = (req) => {
+    const jwt = req.headers['x-goog-iap-jwt-assertion'];
+    console.log('Decoded JWT:', decodeJwt(jwt));
+};
+
 const handleRequest = async (parentDomain, subDomain, filePath, req, res) => {
+    
     if (req.url.startsWith("/npm/")) {
-        // ... existing npm redirect code ...
+        // workaround for a Quarto issue, https://github.com/quarto-dev/quarto-cli/blob/bee87fb00ac2bad4edcecd1671a029b561c20b69/src/core/jupyter/widgets.ts#L120
+        // the embed-amd.js script tag should have a `data-jupyter-widgets-cdn-only` attribute (https://www.evanmarie.com/content/files/notebooks/ipywidgets.html)
+        res.redirect(302, `https://cdn.jsdelivr.net${req.url}`);
+        return;
     }
 
     const fileExtension = getExtension(filePath);
