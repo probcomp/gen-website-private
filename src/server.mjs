@@ -68,6 +68,11 @@ const serveFile = async (res, path) => {
         setCacheHeaders(res, CACHE_POLICIES.STATIC);
         res.setHeader('Content-Type', metadata.contentType);
         res.setHeader('Content-Length', metadata.size);
+        res.setHeader('Last-Modified', metadata.updated);
+        
+        if (metadata.etag) {
+            res.setHeader('ETag', metadata.etag);
+        }
         
         const stream = file.createReadStream();
         stream.on('error', (err) => handleResponseError(res, err));
@@ -78,18 +83,30 @@ const serveFile = async (res, path) => {
 };
 
 const serveHtml = async (res, path) => {
-    const htmlFile = default_bucket.file(path);
-    res.setHeader('Content-Type', 'text/html');
-    setCacheHeaders(res, CACHE_POLICIES.HTML);
-    return new Promise((resolve, reject) => {
-        let rejectLogged = (err) => {
-            reject(err)
+    try {
+        const htmlFile = default_bucket.file(path);
+        const [metadata] = await htmlFile.getMetadata();
+        
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Last-Modified', metadata.updated);
+        setCacheHeaders(res, CACHE_POLICIES.HTML);
+        
+        if (metadata.etag) {
+            res.setHeader('ETag', metadata.etag);
         }
-        htmlFile.createReadStream()
-            .on('error', rejectLogged)
-            .pipe(res)
-            .on('finish', resolve);
-    });
+        
+        return new Promise((resolve, reject) => {
+            let rejectLogged = (err) => {
+                reject(err)
+            }
+            htmlFile.createReadStream()
+                .on('error', rejectLogged)
+                .pipe(res)
+                .on('finish', resolve);
+        });
+    } catch (err) {
+        throw err;
+    }
 };
 
 /**
