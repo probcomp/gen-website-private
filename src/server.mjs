@@ -46,28 +46,15 @@ const handleResponseError = (res, error) => {
     }
 }
 
-const CACHE_POLICIES = {
-    HTML: { maxAge: 60, visibility: 'private', staleWhileRevalidate: 30 },
-    STATIC: { maxAge: 86400, visibility: 'public', staleWhileRevalidate: 3600 }, // 24 hours for static assets
-    SIGNED_URL: { maxAge: 3000, visibility: 'public', staleWhileRevalidate: 300 },
-};
-
-const setCacheHeaders = (res, policy, metadata = {}) => {
-    // Consolidate all cache-related information into a single custom header
-    const cacheInfo = {
-        policy,
-        expires: new Date(Date.now() + policy.maxAge * 1000).toUTCString(),
+const setCacheHeaders = (res, metadata = {}) => {
+    const fileInfo = {
         etag: metadata.etag,
         lastModified: metadata.updated,
-        contentType: metadata.contentType,
-        contentLength: metadata.size
     };
     
-    res.setHeader('X-Cache-Info', JSON.stringify(cacheInfo));
+    res.setHeader('X-File-Info', JSON.stringify(fileInfo));
     
-    // Set standard headers anyway (for local development)
-    res.setHeader('Cache-Control', `${policy.visibility}, max-age=${policy.maxAge}, stale-while-revalidate=${policy.staleWhileRevalidate}`);
-    res.setHeader('Expires', cacheInfo.expires);
+    // Set basic headers for local development
     if (metadata.etag) {
         res.setHeader('ETag', metadata.etag);
     }
@@ -77,38 +64,18 @@ const setCacheHeaders = (res, policy, metadata = {}) => {
 };
 
 const serveFile = async (res, path) => {
-    const startTime = Date.now();
     try {
-        console.log(`[${startTime}] Starting file serve for: ${path}`);
-        
         const file = default_bucket.file(path);
-        const metadataStart = Date.now();
         const [metadata] = await file.getMetadata();
-        console.log(`[+${Date.now() - metadataStart}ms] Metadata fetch completed for: ${path} (size: ${metadata.size})`);
         
-        setCacheHeaders(res, CACHE_POLICIES.STATIC, metadata);
+        setCacheHeaders(res, metadata);
         res.setHeader('Content-Type', metadata.contentType);
         res.setHeader('Content-Length', metadata.size);
         
-        const streamStart = Date.now();
         const stream = file.createReadStream();
-        
-        // Track first data and completion only
-        let firstChunk = true;
-        stream.on('data', () => {
-            if (firstChunk) {
-                console.log(`[+${Date.now() - streamStart}ms] First chunk received for: ${path}`);
-                firstChunk = false;
-            }
-        });
-        
-        stream.on('end', () => {
-            console.log(`[+${Date.now() - startTime}ms] Total time to serve: ${path}`);
-        });
         
         return stream.pipe(res);
     } catch (err) {
-        console.error(`[+${Date.now() - startTime}ms] Error serving ${path}:`, err);
         handleResponseError(res, err);
     }
 };
@@ -118,7 +85,7 @@ const serveHtml = async (res, path) => {
         const htmlFile = default_bucket.file(path);
         const [metadata] = await htmlFile.getMetadata();
         
-        setCacheHeaders(res, CACHE_POLICIES.HTML, metadata);
+        setCacheHeaders(res, metadata);
         res.setHeader('Content-Type', 'text/html');
         
         return new Promise((resolve, reject) => {
@@ -197,17 +164,12 @@ const serveHtmlWithFallbacks = async (res, parentDomain, subDomain, filePaths) =
 };
 
 const handleRequest = async (parentDomain, subDomain, filePath, req, res) => {
-    const startTime = Date.now();
-    console.log(`[${startTime}] Request started for: ${req.url}`);
-    
     if (req.url.startsWith("/npm/")) {
         // ... existing npm redirect code ...
     }
 
     const fileExtension = getExtension(filePath);
     try {
-        console.log(`[+${Date.now() - startTime}ms] Processing ${fileExtension ? fileExtension : 'no-extension'} file: ${filePath}`);
-        
         if (fileExtension) {
             if (fileExtension === 'html') {
                 await serveHtml(res, path.join(parentDomain, subDomain, filePath));
@@ -217,13 +179,10 @@ const handleRequest = async (parentDomain, subDomain, filePath, req, res) => {
         } else {
             await serveHtmlWithFallbacks(res, parentDomain, subDomain, paths(filePath));
         }
-        console.log(`[+${Date.now() - startTime}ms] Request completed for: ${req.url}`);
     } catch (error) {
-        console.error(`[+${Date.now() - startTime}ms] Error handling request for ${req.url}:`, error);
         handleResponseError(res, error);
     }
 };
-
 
 // Add this new route handler
 app.get('/bucket/:bucketName/*', async (req, res) => {

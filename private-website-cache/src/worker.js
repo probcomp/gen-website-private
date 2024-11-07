@@ -1,78 +1,97 @@
+const headersToDelete = [
+	'pragma', 'cache-control', 'expires', 'etag', 'last-modified',
+	'x-cloud-trace-context', 'x-appengine-resource-usage',
+	'x-powered-by', 'x-cache-info'
+];
+
+const CACHE_POLICIES = {
+    HTML: { maxAge: 60, visibility: 'private', staleWhileRevalidate: 30 },
+    STATIC: { maxAge: 86400, visibility: 'public', staleWhileRevalidate: 3600 }, // 24 hours
+    LARGE_BINARY: { maxAge: 31536000, visibility: 'public', immutable: true }, // 1 year
+};
+
+const getCachePolicy = (pathname, contentType) => {
+    const ext = pathname.split('.').pop().toLowerCase();
+
+    if (['wasm', 'data'].includes(ext)) {
+        return CACHE_POLICIES.LARGE_BINARY;
+    }
+    if (contentType?.includes('text/html')) {
+        return CACHE_POLICIES.HTML;
+    }
+    return CACHE_POLICIES.STATIC;
+};
+
+async function handleLargeFile(request, response, ext, ctx) {
+  const url = new URL(request.url);
+  const cache = caches.default;
+
+  // Try cache first
+  let cachedResponse = await cache.match(request);
+  if (cachedResponse) {
+    const modifiedResponse = new Response(cachedResponse.body, cachedResponse);
+    modifiedResponse.headers.set('X-Cache-Status', 'HIT');
+    return modifiedResponse;
+  }
+
+  const modifiedResponse = new Response(response.body, response);
+
+  headersToDelete.forEach(header => modifiedResponse.headers.delete(header));
+
+  // Set strong caching headers
+  modifiedResponse.headers.set('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year
+  modifiedResponse.headers.set('Vary', 'Accept-Encoding');
+  modifiedResponse.headers.set('X-Cache-Status', 'MISS');
+
+  // Cache the response
+  ctx.waitUntil(cache.put(request, modifiedResponse.clone()));
+
+  return modifiedResponse;
+}
+
 export default {
   async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const ext = url.pathname.split('.').pop().toLowerCase();
+
+    // Fetch from origin
     const response = await fetch(request);
 
-    // Check for custom cache info
-    const cacheInfoHeader = response.headers.get('X-Cache-Info');
-    if (cacheInfoHeader) {
-      try {
-        const cacheInfo = JSON.parse(cacheInfoHeader);
-        const modifiedResponse = new Response(response.body, response);
-        const url = new URL(request.url);
-        const ext = url.pathname.split('.').pop().toLowerCase();
-
-        // Clear any existing cache headers
-        const headersToDelete = [
-          'Pragma', 'Cache-Control', 'Expires', 'ETag', 'Last-Modified',
-          'x-cloud-trace-context', 'x-appengine-resource-usage',
-          'cf-cache-status', 'cf-ray', 'x-powered-by'
-        ];
-        headersToDelete.forEach(header => modifiedResponse.headers.delete(header));
-
-        // Restore cache control headers
-        const { policy, expires, etag, lastModified, contentLength } = cacheInfo;
-
-        // Handle conditional requests
-        const ifNoneMatch = request.headers.get('If-None-Match');
-        const ifModifiedSince = request.headers.get('If-Modified-Since');
-
-        // Add immutable flag for certain file types
-        const isImmutable = ['wasm', 'data'].includes(ext);
-        let cacheControl = `${policy.visibility}, max-age=${policy.maxAge}, stale-while-revalidate=${policy.staleWhileRevalidate}`;
-        if (isImmutable) {
-          cacheControl += ', immutable';
-        }
-
-        // Return 304 for conditional requests
-        if ((etag && ifNoneMatch === etag) ||
-            (lastModified && ifModifiedSince && new Date(ifModifiedSince) >= new Date(lastModified))) {
-          return new Response(null, {
-            status: 304,
-            headers: new Headers({
-              'Cache-Control': cacheControl,
-              'ETag': etag,
-              'Last-Modified': lastModified,
-              'Content-Type': response.headers.get('Content-Type'),
-              'Vary': 'Accept-Encoding'
-            })
-          });
-        }
-
-        // Set cache headers for normal responses
-        modifiedResponse.headers.set('Cache-Control', cacheControl);
-        modifiedResponse.headers.set('Expires', expires);
-        modifiedResponse.headers.set('Vary', 'Accept-Encoding');
-
-        // Add compression hint for large files
-        if (contentLength > 1024 * 1024) {
-          modifiedResponse.headers.set('Accept-Encoding', 'gzip, deflate, br');
-        }
-
-        if (etag) {
-          modifiedResponse.headers.set('ETag', etag);
-        }
-        if (lastModified) {
-          modifiedResponse.headers.set('Last-Modified', lastModified);
-        }
-
-        // Remove the custom header
-        modifiedResponse.headers.delete('X-Cache-Info');
-        return modifiedResponse;
-      } catch (e) {
-        console.error('Failed to parse cache info:', e);
-      }
+    // Handle large binary files with Cache API
+    if (['wasm', 'data'].includes(ext)) {
+      return handleLargeFile(request, response, ext, ctx);
     }
 
-    return response;
+    const modifiedResponse = new Response(response.body, response);
+    headersToDelete.forEach(header => modifiedResponse.headers.delete(header));
+
+    // Apply cache policy based on content type
+    const contentType = response.headers.get('Content-Type');
+    const policy = getCachePolicy(url.pathname, contentType);
+
+    const cacheControl = policy.immutable
+        ? `${policy.visibility}, max-age=${policy.maxAge}, immutable`
+        : `${policy.visibility}, max-age=${policy.maxAge}, stale-while-revalidate=${policy.staleWhileRevalidate}`;
+
+    modifiedResponse.headers.set('Cache-Control', cacheControl);
+    modifiedResponse.headers.set('Vary', 'Accept-Encoding');
+
+    // Get ETag and Last-Modified from X-File-Info
+    const fileInfoHeader = response.headers.get('X-File-Info');
+    if (fileInfoHeader) {
+        try {
+            const fileInfo = JSON.parse(fileInfoHeader);
+            if (fileInfo.etag) {
+                modifiedResponse.headers.set('ETag', fileInfo.etag);
+            }
+            if (fileInfo.lastModified) {
+                modifiedResponse.headers.set('Last-Modified', fileInfo.lastModified);
+            }
+        } catch (e) {
+            console.error('Failed to parse file info:', e);
+        }
+    }
+
+    return modifiedResponse;
   }
 };
