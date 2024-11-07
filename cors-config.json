@@ -5,7 +5,9 @@
             "https://gen.dev"
         ],
         "responseHeader": [
-            "Content-Type"
+            "Content-Type",
+            "Access-Control-Allow-Origin",
+            "Access-Control-Allow-Methods"
         ],
         "method": [
             "GET",
