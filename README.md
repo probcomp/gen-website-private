@@ -70,10 +70,6 @@ openssl rsa -in domain.com-YYYY-MM-dd.key -out domain.com-RSA-YYYY-MM-dd.key -tr
 ```
 The certificate was free and expires in 15 years; it's only useful for use between Cloudflare and App Engine. (If we would switch DNS providers we would need another wildcard subdomain SSL solution.)
 
-### CORS
-
-CORS support is handled by `cors-config.json` which was added to the bucket via `gsutil cors set cors-config.json gs://gen-website-private` ([details](https://stackoverflow.com/questions/45273514/google-cloud-storage-gcs-cors-wildcard))
-
 ### Accessing Files from Other Buckets
 
 This server now supports accessing files from any Google Cloud Storage bucket that grants read access to the `gen-website-private-admin@probcomp-caliban.iam.gserviceaccount.com` service account. You can access these files using the following URL pattern:
@@ -81,3 +77,40 @@ This server now supports accessing files from any Google Cloud Storage bucket th
 ```
 https://probcomp-caliban.uc.r.appspot.com/bucket/<BUCKET_NAME>/<FILE_PATH>
 ```
+
+Note that we currently use signed urls for bucket redirects, which do not respect the CORS policy of the bucket.
+
+### CORS
+
+As buckets are private, we redirect using time-limited signed urls, which do not follow the CORS policy of the bucket. ~CORS support is handled by `cors-config.json` which was added to the bucket via `gsutil cors set cors-config.json gs://gen-website-private` ([details](https://stackoverflow.com/questions/45273514/google-cloud-storage-gcs-cors-wildcard))~ 
+
+## Developer notes 
+
+### Cloudflare Worker
+
+A cloudflare worker (`./private-website-cache/src/worker.js`) sits in front of `*.gen.dev` to apply caching policies, which are otherwise ignored/overwritten by IAP (Identity Aware Proxy). These can be modified by:
+- editing `worker.js`
+- making sure you have access to our Cloudflare group
+- `npx wrangler login` and `npx deploy` from within the `private-website-cache` directory
+
+### Caching Policies
+
+The Cloudflare worker implements three tiers of caching:
+
+1. HTML files:
+   - Private cache (per-user)
+   - 60 second max age
+   - 30 second stale-while-revalidate window
+
+2. Static assets (default):
+   - Public cache
+   - 24 hour max age 
+   - 1 hour stale-while-revalidate window
+
+3. Large binary files (.wasm, .data):
+   - Public cache
+   - 1 year max age
+   - Immutable (no revalidation)
+   - Uses Cloudflare Cache API for improved performance
+
+The worker strips standard caching headers from the origin and applies these policies consistently. It also preserves ETags and Last-Modified dates when available, and sets Vary: Accept-Encoding for proper handling of compressed content.
