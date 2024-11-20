@@ -52,10 +52,26 @@ async function handleLargeFile(request, response, ext, ctx) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const ext = url.pathname.split('.').pop().toLowerCase();
-
-    // Fetch from origin
     const response = await fetch(request);
+
+    // Never cache any IAP-related responses
+    if (
+        // IAP authentication flow
+        url.searchParams.has('gcp-iap-mode') ||
+        // IAP-generated responses
+        response.headers.get('x-goog-iap-generated-response') === 'true' ||
+        // Redirects to IAP or Google auth
+        (response.status === 302 &&
+         response.headers.get('location')?.includes('iap.googleapis.com'))
+    ) {
+        console.log('Bypassing cache for IAP-related response:', {
+            url: request.url,
+            location: response.headers.get('location')
+        });
+        return response;
+    }
+
+    const ext = url.pathname.split('.').pop().toLowerCase();
 
     // Handle large binary files with Cache API
     if (['wasm', 'data'].includes(ext)) {
