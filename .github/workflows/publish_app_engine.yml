@@ -19,10 +19,10 @@ jobs:
     - id: 'auth'
       uses: 'google-github-actions/auth@v2.1.3'
       with:
-        project_id: 'probcomp-caliban'
-        workload_identity_provider: 'projects/110275315150/locations/global/workloadIdentityPools/app-engine-publishers/providers/github'
-        service_account: 'github-appengine-deploy@probcomp-caliban.iam.gserviceaccount.com'
-        audience: 'https://iam.googleapis.com/projects/110275315150/locations/global/workloadIdentityPools/app-engine-publishers/providers/github'
+        project_id: 'opengen-437315'
+        workload_identity_provider: 'projects/557148610837/locations/global/workloadIdentityPools/app-engine-publishers/providers/github'
+        service_account: 'github-appengine-deploy@opengen-437315.iam.gserviceaccount.com'
+        audience: 'https://iam.googleapis.com/projects/557148610837/locations/global/workloadIdentityPools/app-engine-publishers/providers/github'
     - id: 'deploy'
       run: gcloud app deploy --quiet 
            
