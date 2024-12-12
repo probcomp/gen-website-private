@@ -11,12 +11,18 @@ const CACHE_POLICIES = {
 };
 
 const getCachePolicy = (pathname, contentType) => {
+    // Handle root-like paths first
+    if (pathname === '/' || pathname.endsWith('/') || !pathname.includes('.')) {
+        return CACHE_POLICIES.HTML;
+    }
+
     const ext = pathname.split('.').pop().toLowerCase();
 
     if (['wasm', 'data'].includes(ext)) {
         return CACHE_POLICIES.LARGE_BINARY;
     }
-    if (contentType?.includes('text/html')) {
+    // More specific content type check
+    if (contentType?.toLowerCase().includes('text/html')) {
         return CACHE_POLICIES.HTML;
     }
     return CACHE_POLICIES.STATIC;
