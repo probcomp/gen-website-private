@@ -17,6 +17,7 @@ on:
       destination_bucket:
         type: string
         required: false
+        default: 'gs://opengen-websites'
 
 jobs:
   Deploy:
@@ -49,6 +50,6 @@ jobs:
         WEBSITE_DIR=./website-artifact
         PARENT_DOMAIN=${{inputs.parent_domain}}
         SUBDOMAIN=${{ inputs.subdomain == '' && github.event.repository.name || inputs.subdomain }}
-        BUCKET_PATH="${{ inputs.destination_bucket || secrets.DEFAULT_BUCKET }}/$PARENT_DOMAIN/$SUBDOMAIN"
+        BUCKET_PATH="${{inputs.destination_bucket}}/$PARENT_DOMAIN/$SUBDOMAIN"
         gcloud storage rsync --recursive --delete-unmatched-destination-objects --cache-control 'public, max-age=60' $WEBSITE_DIR $BUCKET_PATH
         echo "Published directory $WEBSITE_DIR to $SUBDOMAIN.$PARENT_DOMAIN ($BUCKET_PATH)"
