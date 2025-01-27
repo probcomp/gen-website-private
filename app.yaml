@@ -1,6 +1,6 @@
 runtime: nodejs22
 env_variables:
-  BUCKET_NAME: "gen-website-private"
+  BUCKET_NAME: "opengen-websites"
 
 handlers:
   - url: /.*
